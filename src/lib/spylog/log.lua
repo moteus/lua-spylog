@@ -2,7 +2,7 @@ local SERVICE = require "lib/SERVICE"
 local config  = require "spylog.config"
 
 local function build_writer()
-  require "lib/SERVICE"
+  local SERVICE = require "lib/SERVICE"
   local config  = require "spylog.config"
   local stdout_writer
 
