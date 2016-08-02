@@ -8,12 +8,16 @@ local ENGINES = {
       failregex = {failregex}
     end
 
+    local function rmatch(i, t, ...)
+      if ... then return i-1, ... end
+      if failregex[i] then
+        return rmatch(i+1, t, string.match(t, failregex[i]))
+      end
+    end
+
     local match = function(t)
       if (not filter.hint) or string.find(t, filter.hint, nil, true) then
-        for i = 1, #failregex do
-          local dt, ip = string.match(t, failregex[i])
-          if dt then return i, dt, ip end
-        end
+        return rmatch(1, t)
       end
     end
 
@@ -56,12 +60,16 @@ local ENGINES = {
       end
     end
 
+    local function rmatch(i, t, ...)
+      if ... then return i-1, ... end
+      if failregex[i] then
+        return rmatch(i+1, t, failregex[i]:match(t))
+      end
+    end
+
     local match = function(t)
       if (not filter.hint) or string.find(t, filter.hint, nil, true) then
-        for i = 1, #failregex do
-          local dt, ip = failregex[i]:match(t)
-          if dt then return i, dt, ip end
-        end
+        return rmatch(1, t)
       end
     end
 
