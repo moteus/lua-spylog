@@ -8,6 +8,14 @@ FILTER{
 
 JAIL{
   purge_interval = 10;
+
+  -- Defaults for all jails
+  default = {
+    -- variables to actions
+    option = {
+      destemail = 'monitor@email.com';
+    };
+  };
 }
 
 ACTION{

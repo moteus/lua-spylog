@@ -14,6 +14,89 @@ local date     = require "date"
 local stp      = require "StackTracePlus"
 local exit     = require "spylog.exit"
 
+local DEFAULT = config.JAIL and config.JAIL.default or {}
+
+local Format do 
+
+local lpeg = require "lpeg"
+
+local P, C, Cs, Ct, Cp, S = lpeg.P, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Cp, lpeg.S
+
+local any = P(1)
+local sym = any-S':}'
+local esc = P'%%' / '%%'
+local var = P'%{' * C(sym^1) * '}'
+local fmt = P'%{' * C(sym^1) * ':' * C(sym^1) * '}'
+
+local function LpegFormat(str, context)
+  local function fmt_sub(k, fmt)
+    local v = context[k]
+    if v == nil then
+      local n = tonumber(k)
+      if n then v = context[k] end
+    end
+
+    if v ~= nil then 
+      return string.format("%"..fmt, context[k])
+    end
+  end
+
+  local function var_sub(k)
+    local v = context[k]
+    if v == nil then
+      local n = tonumber(k)
+      if n then v = context[k] end
+    end
+    if v ~= nil then
+      return tostring(v)
+    end
+  end
+
+  local pattern = Cs((esc + (fmt / fmt_sub) + (var / var_sub) + any)^0)
+
+  return pattern:match(str)
+end
+
+local function LuaFormat(str, context)
+  -- %{name:format}
+  str = string.gsub(str, '%%%{([%w_][%w_]*)%:([-0-9%.]*[cdeEfgGiouxXsq])%}',
+    function(k, fmt)
+      local v = context[k]
+      if v == nil then
+        local n = tonumber(k)
+        if n then v = context[k] end
+      end
+
+      if v ~= nil then 
+        return string.format("%"..fmt, context[k])
+      end
+    end
+  )
+
+  return (
+    -- %{name}
+    str:gsub('%%%{([%w_][%w_]*)%}', function(k)
+      local v = context[k]
+      if v == nil then
+        local n = tonumber(k)
+        if n then v = context[k] end
+      end
+      if v ~= nil then
+        return tostring(v)
+      end
+    end)
+  )
+end
+
+Format = function(str, context)
+  if string.find(str, '%%', 1, true) then
+    return LpegFormat(str, context)
+  end
+  return LuaFormat(str, context)
+end
+
+end
+
 local date_to_ts do
 
 local begin_time = date(2000, 1, 1)
@@ -45,14 +128,76 @@ if not pub then
   return SERVICE.exit()
 end
 
+local combine do
+
+local mt = {
+  __index = function(self, k)
+    for i = 1, #self do
+      if self[i][k] ~= nil then
+        return self[i][k]
+      end
+    end
+  end
+}
+
+combine = function(t)
+  return setmetatable(t, mt)
+end
+
+end
+
 local function action(jail, filter)
+  -- convert `filter` to message
+  filter.filter  = filter.name
+  filter.jail    = jail.name
+  filter.bantime = jail.bantime
+  filter.name    = nil
+
+  local options
+  if jail.option then
+    options = {}
+    local context = DEFAULT.option and combine{filter, DEFAULT.option} or filter
+    for i, v in pairs(jail.option) do
+      options[i] = Format(v, context)
+    end
+  end
+
+  local context
+  if options then
+    context = combine{filter, options, DEFAULT.option}
+  elseif DEFAULT.option then
+    
+    context = combine{filter, DEFAULT.option}
+  else
+    context = filter
+  end
+
+  local actions = {}
+  if type(jail.action) == 'string' then 
+    actions[1] = Format(jail.action, context)
+  else
+    for _, action in ipairs(jail.action) do
+      if type(action) == 'string' then
+        actions[#actions + 1] = Format(action, context);
+      else
+        local options
+        if action[2] then
+          options = {}
+          for name, value in pairs(action[2]) do
+            options[name] = Format(value, context)
+          end
+        end
+        actions[#actions + 1] = {Format(action[1], context), options}
+      end
+    end
+  end
+
   local msg = cjson.encode{
-    date    = filter.date;
-    jail    = jail.name;
-    filter  = filter.name;
-    host    = filter.host;
-    bantime = jail.bantime;
-    action  = jail.action;
+    filter  = filter.filter;
+    jail    = filter.jail;
+    bantime = filter.bantime;
+    action  = actions;
+    option  = options;
   }
 
   log.trace("action %s", msg)
@@ -76,6 +221,13 @@ local function j(t)
       end
     else
       t[ jail.filter ] = jail
+    end
+
+    -- apply default values
+    for name, value in pairs(DEFAULT) do
+      if name ~= 'option' and t[name] == nil then
+        jail[name] = value
+      end
     end
   end
   return t
@@ -125,7 +277,7 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
     if value >= jail.maxretry then
       counter:reset(t.host, date_to_ts(t.date))
       log.warning("[%s] %s - %d", jail.name, t.host, value)
-      action(jail, t)
+      action(jail, t) --! @note `action` may add some fields to `t`
     else
       log.trace("[%s] %s - %d", jail.name, t.host, value)
     end
