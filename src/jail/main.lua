@@ -196,6 +196,8 @@ local function action(jail, filter)
     filter  = filter.filter;
     jail    = filter.jail;
     bantime = filter.bantime;
+    host    = filter.host;
+    date    = filter.date;
     action  = actions;
     option  = options;
   }

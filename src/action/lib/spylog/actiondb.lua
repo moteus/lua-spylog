@@ -11,6 +11,24 @@ local json     = require "cjson"
 local dt = os.date("%Y-%m-%d %H:%M:%S")
 assert(dt == date(dt):fmt("%F %T"))
 
+local combine do
+
+local mt = {
+  __index = function(self, k)
+    for i = 1, #self do
+      if self[i][k] ~= nil then
+        return self[i][k]
+      end
+    end
+  end
+}
+
+combine = function(t)
+  return setmetatable(t, mt)
+end
+
+end
+
 local ActionDB = ut.class() do
 
 function ActionDB:__init(fileName)
@@ -68,8 +86,16 @@ end
 function ActionDB:_add_command(unique, action, action_type, action_cmd, action_args, options)
   local active_action
 
+  local context, action_name = action, action.action
+  if type(action_name) == 'table' then
+    action_name = action_name[1]
+    if action.action[2] then
+      context = combine{action, action.action[2]}
+    end
+  end
+
   if unique then -- control duplicate
-    unique = Args.apply_tags(unique, action)
+    unique = Args.apply_tags(unique, context)
     active_action = self:_find_command(action_type, unique)
   end
 
@@ -97,7 +123,7 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
     return
   end
 
-  action_args = Args.apply_tags(action_args or '', action)
+  action_args = Args.apply_tags(action_args or '', context)
 
   -- not prepared command so we create new one
   local stmt = assert(self._db:prepare(
@@ -109,7 +135,7 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
   assert(stmt:bind(
     action.uuid,
     action.date,
-    action.action,
+    action_name,
     action.jail,
     action_type,
     action.host,
@@ -127,10 +153,13 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
 end
 
 function ActionDB:add(action)
-  local command = config.ACTIONS[action.action]
+  local action_name = action.action
+  if type(action_name) == 'table' then action_name = action_name[1] end
+
+  local command = config.ACTIONS[action_name]
 
   if not command then
-    log.alert('unknown action %s', action.action)
+    log.alert('unknown action %s', action_name)
     return
   end
 
