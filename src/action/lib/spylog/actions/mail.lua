@@ -22,6 +22,7 @@ end
 
 return function(action, cb)
   local options = action.options
+  local parameters = action.action.parameters
 
   local args, tail = Args.split(action.args)
 
@@ -45,13 +46,13 @@ return function(action, cb)
       },
 
       from = {
-        title   = options.from.title;
-        address = options.from.address;
+        title   = parameters and parameters.sendername or options.from.title;
+        address = parameters and parameters.sender     or options.from.address;
       },
 
       to = {
-        title   = options.to.title;
-        address = options.to.address;
+        title   =  parameters and parameters.destname or options.to.title;
+        address =  parameters and parameters.dest     or options.to.address;
       },
 
       message = { args[1], args[2] }

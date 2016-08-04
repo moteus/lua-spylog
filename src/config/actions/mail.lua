@@ -3,12 +3,14 @@ ACTION{"mail",
     Filter: <FILTER>
     Jail:   <JAIL>
     Host:   <HOST>
+    <MSG>
   "]]};
 
   off = { "@spylog.actions.mail", [["SpyLog unban <HOST>" "
     Filter: <FILTER>
     Jail:   <JAIL>
     Host:   <HOST>
+    <MSG>
   "]]};
 
   options = {
