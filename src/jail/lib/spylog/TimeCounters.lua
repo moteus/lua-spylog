@@ -1,4 +1,5 @@
 local ztimer = require "lzmq.timer"
+local date   = require "date"
 
 -------------------------------------------------------------------------------
 local TimeCounter = {} do
@@ -11,11 +12,11 @@ function TimeCounter:new(interval)
   return o
 end
 
-function TimeCounter:inc()
+function TimeCounter:inc(v)
   if self._timer:rest() == 0 then
     self:reset()
   end
-  self._value = self._value + 1
+  self._value = self._value + (v or 1)
   return self._value
 end
 
@@ -60,12 +61,12 @@ function ExternalTimeCounter:diff_(now)
   return diff
 end
 
-function ExternalTimeCounter:inc(now)
+function ExternalTimeCounter:inc(v, now)
   local diff = self:diff_(now)
   if diff > self._interval then
     self:reset(now)
   end
-  self._value = self._value + 1
+  self._value = self._value + (v or 1)
   return self._value
 end
 
@@ -101,14 +102,14 @@ function TimeCounters:new(Counter, interval)
   return o
 end
 
-function TimeCounters:inc(value, now)
+function TimeCounters:inc(value, delta, now)
   local counter = self._counters[value]
   if not counter then
     counter = self._Counter:new(self._interval, now)
     self._counters[value] = counter
   end
-  
-  return counter:inc(now)
+
+  return counter:inc(delta, now)
 end
 
 function TimeCounters:get(value, now)
@@ -154,8 +155,86 @@ end
 end
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+local JailCounter = {} do
+JailCounter.__index = JailCounter
+
+local date_to_ts do
+
+local begin_time = date(2000, 1, 1)
+
+date_to_ts = function (d)
+  return math.floor(date.diff(d, begin_time):spanseconds())
+end
+
+end
+
+function JailCounter:new(jail)
+  local o = setmetatable({}, self)
+
+  o._external   = jail.counter and jail.counter.time == 'filter'
+  o._accumulate = jail.counter and jail.counter.type == 'accumulate'
+  o._fixed      = jail.counter and jail.counter.type == 'fixed'
+
+  if not o._fixed then
+    o._counter = TimeCounters:new( 
+      o._external and ExternalTimeCounter or TimeCounter,
+      jail.findtime
+    )
+  end
+
+  return o
+end
+
+function JailCounter:inc(filter)
+  if self._fixed then
+    return tonumber(filter.value) or 1
+  end
+
+  local now
+  if self._external then
+    now = date_to_ts(filter.date)
+  end
+
+  local inc
+  if self._accumulate then
+    inc = tonumber(filter.value)
+  end
+
+  return self._counter:inc(filter.host, inc, now)
+end
+
+function JailCounter:reset(filter)
+  if self._fixed then return end
+
+  local now
+  if self._external then
+    now = date_to_ts(filter.date)
+  end
+
+  self._counter:reset(now)
+end
+
+function JailCounter:purge(now)
+  if self._fixed then return end
+
+  local now
+  if self._external then
+    now = date_to_ts(now)
+  end
+
+  self._counter:purge(now)
+end
+
+function JailCounter:count()
+  if self._fixed then return 0 end
+
+  return self._counter:count()
+end
+
+end
+-------------------------------------------------------------------------------
+
 return {
-  map      = TimeCounters;
-  internal = TimeCounter;
-  external = ExternalTimeCounter;
+  jail = JailCounter;
 }

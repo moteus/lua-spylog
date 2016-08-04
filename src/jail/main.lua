@@ -108,16 +108,6 @@ end
 
 end
 
-local date_to_ts do
-
-local begin_time = date(2000, 1, 1)
-
-date_to_ts = function (d)
-  return math.floor(date.diff(d, begin_time):spanseconds())
-end
-
-end
-
 local sub = zthreads.context():socket("SUB",{
   [config.CONNECTIONS.JAIL.FILTER.type] = config.CONNECTIONS.JAIL.FILTER.address;
   subscribe = "";
@@ -270,6 +260,12 @@ end
 
 local jail_counters = {}
 
+local function create_counter(jail)
+  local counter = Counter.jail:new( jail )
+
+  return counter
+end
+
 uv.poll_zmq(sub):start(function(handle, err, pipe)
   if err then
     log.fatal("poll: ", err)
@@ -299,14 +295,14 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
   else
     local counter = jail_counters[t.name]
     if not counter then
-      counter = Counter.map:new( Counter.external, jail.findtime )
+      counter = create_counter(jail)
       jail_counters[t.name] = counter
     end
 
-    local value = counter:inc(t.host, date_to_ts(t.date))
+    local value = counter:inc(t)
 
     if value >= jail.maxretry then
-      counter:reset(t.host, date_to_ts(t.date))
+      counter:reset(t)
       log.warning("[%s] %s - %d", jail.name, t.host, value)
       action(jail, t) --! @note `action` may add some fields to `t`
     else
@@ -324,7 +320,7 @@ if config.JAIL and config.JAIL.purge_interval then
     purge_counter = purge_counter + 1
     if purge_counter >= purge_interval then
       purge_counter = 0
-      local now = date_to_ts(date())
+      local now = date()
       for name, jail_counter in pairs(jail_counters) do
         local c
         if log.lvl() >= LVL_TRACE then
