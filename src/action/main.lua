@@ -106,8 +106,16 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
     local act = t.action
     for i = 1, #act do
       local d = t.date
+
       t.action = act[i]
+      if type(t.action) == 'table' then
+        t.action, t.parameters = t.action[1], t.action[2]
+      else
+        t.parameters = nil
+      end
+
       actions:add(t)
+
       t.date = d
     end
   else

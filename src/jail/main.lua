@@ -129,7 +129,7 @@ if not sub then
   return SERVICE.exit()
 end
 
-local pub = zthreads.context():socket("PUB",{
+local pub, err = zthreads.context():socket("PUB",{
   [config.CONNECTIONS.JAIL.ACTION.type] = config.CONNECTIONS.JAIL.ACTION.address;
 })
 
@@ -198,7 +198,7 @@ local function action(jail, filter)
     local unknown
     for _, action in ipairs(jail.action) do
       if type(action) == 'string' then
-        actions[#actions + 1], unknown = Format(action, context);
+        actions[#actions + 1], unknown = Format(action, context)
         if unknown then
           return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
         end

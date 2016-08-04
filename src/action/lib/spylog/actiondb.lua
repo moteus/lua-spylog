@@ -87,11 +87,8 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
   local active_action
 
   local context, action_name = action, action.action
-  if type(action_name) == 'table' then
-    action_name = action_name[1]
-    if action.action[2] then
-      context = combine{action, action.action[2]}
-    end
+  if action.parameters then
+    context = combine{action, action.parameters}
   end
 
   if unique then -- control duplicate
@@ -154,7 +151,6 @@ end
 
 function ActionDB:add(action)
   local action_name = action.action
-  if type(action_name) == 'table' then action_name = action_name[1] end
 
   local command = config.ACTIONS[action_name]
 
