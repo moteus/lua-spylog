@@ -7,7 +7,7 @@ TimeCounter.__index = TimeCounter
 
 function TimeCounter:new(interval)
   local o = setmetatable({}, self)
-  o._timer = ztimer.monotonic():start(interval)
+  o._timer = ztimer.monotonic():start(interval * 1000)
   o._value = 0
   return o
 end
@@ -43,9 +43,9 @@ end
 local ExternalTimeCounter = {} do
 ExternalTimeCounter.__index = ExternalTimeCounter
 
-function ExternalTimeCounter:new(interval, now)
+function ExternalTimeCounter:new(interval)
   local o = setmetatable({}, self)
-  o._start = now
+  o._start = 0
   o._interval = interval
   o._value = 0
   return o
@@ -91,21 +91,164 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
+local RpnBaseCounter = {} do
+RpnBaseCounter.__index = RpnBaseCounter
+
+local div = function(a, b) 
+  return math.floor(a/b)
+end
+
+local timer
+
+local function get_now(resolution)
+  return div(timer:elapsed(), (resolution * 1000))
+end
+
+function RpnBaseCounter:__init(interval, resolution)
+  self._last_time = 0
+  self._total = 0
+  self._values = {}
+
+  resolution = resolution or 1
+  interval   = interval or 60
+  if interval < 60 then interval = 60 end -- at least one minute
+
+  self._N = div(interval, resolution)
+  if self._N > 60 then 
+    self._N  = 60
+    resolution = div(interval, self._N)
+  end -- too many subcounters
+
+  self._interval = self._N * resolution
+  self._double_interval = 2 * self._interval
+
+  if resolution == 1 then
+    if self._internal then
+      self._now = function(self)
+        return div(timer:elapsed(), 1000)
+      end
+    else
+      self._now = function(self, now)
+        return now
+      end
+    end
+  else
+    if self._internal then
+      local sec = resolution * 1000
+      self._now = function(self)
+        return div(timer:elapsed(), sec)
+      end
+    else
+      self._now = function(self, now)
+        return div(now, resolution)
+      end
+    end
+  end
+
+  if self._internal then
+    timer = timer or ztimer.monotonic():start()
+  end
+
+  for i = 0, self._N - 1 do self._values[i] = 0 end
+
+  return self
+end
+
+function RpnBaseCounter:_refresh(now)
+  local N = self._N
+
+  now = self:_now(now)
+
+  local elapsed = now - self._last_time
+
+  if elapsed > self._double_interval then
+    for i = 0, N - 1 do self._values[i] = 0 end
+    self._last_time = now
+  elseif elapsed >= self._interval then
+    local last_valid_time = now - N + 1
+    local last_count_time = self._last_time
+
+    local i = (last_valid_time - 1) % N
+    local j = (last_count_time - 1) % N
+
+    while i ~= j do
+      self._total = self._total - self._values[i]
+      self._values[i] = 0
+      i = (i - 1 + N) % N
+    end
+
+    self._last_time = last_valid_time
+  end
+
+  return now
+end
+
+function RpnBaseCounter:inc(v, now)
+  now = self:_refresh(now)
+
+  local e = now % self._N
+  self._values[e] = self._values[e] + (v or 1);
+  self._total = self._total + (v or 1)
+
+  return self._total
+end
+
+function RpnBaseCounter:get(now)
+  self:_refresh(now)
+  return self._total
+end
+
+function RpnBaseCounter:reset(now)
+  self._last_time = 0
+  self._total = 0
+  for i = 0, self._N - 1 do self._values[i] = 0 end
+end
+
+end
+
+local RpnInternalCounter = setmetatable({}, RpnBaseCounter) do
+RpnInternalCounter.__index = RpnInternalCounter
+
+function RpnInternalCounter:new(interval, resolution)
+  local o = setmetatable({}, RpnInternalCounter)
+  o._internal = true
+  RpnBaseCounter.__init(o, interval, resolution)
+  return o
+end
+
+end
+
+local RpnExternalCounter = setmetatable({}, RpnBaseCounter) do
+RpnExternalCounter.__index = RpnExternalCounter
+
+function RpnExternalCounter:new(interval, resolution)
+  local o = setmetatable({}, RpnExternalCounter)
+  o._internal = false
+  RpnBaseCounter.__init(o, interval, resolution)
+  return o
+end
+
+end
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
 local TimeCounters = {} do
 TimeCounters.__index = TimeCounters
 
-function TimeCounters:new(Counter, interval)
+function TimeCounters:new(Counter, interval, resolution)
   local o = setmetatable({}, self)
-  o._Counter = Counter
-  o._counters = {}
-  o._interval = interval
+  o._Counter    = Counter
+  o._counters   = {}
+  o._interval   = interval
+  o._resolution = resolution
+
   return o
 end
 
 function TimeCounters:inc(value, delta, now)
   local counter = self._counters[value]
   if not counter then
-    counter = self._Counter:new(self._interval, now)
+    counter = self._Counter:new(self._interval, self._resolution)
     self._counters[value] = counter
   end
 
@@ -177,10 +320,15 @@ function JailCounter:new(jail)
   o._fixed      = jail.counter and jail.counter.type == 'fixed'
 
   if not o._fixed then
-    o._counter = TimeCounters:new( 
-      o._external and ExternalTimeCounter or TimeCounter,
-      jail.findtime
-    )
+    local resolution = jail.counter and jail.counter.resolution
+    local counter
+    if resolution then
+      counter = o._external and RpnExternalCounter or RpnInternalCounter
+    else
+      counter = o._external and ExternalTimeCounter or TimeCounter
+    end
+
+    o._counter = TimeCounters:new(counter, jail.findtime, resolution)
   end
 
   return o
