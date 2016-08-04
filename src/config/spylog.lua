@@ -11,9 +11,12 @@ JAIL{
 
   -- Defaults for all jails
   default = {
-    -- variables to actions
-    option = {
+
+    -- parameters to actions
+    parameters = {
       destemail = 'monitor@email.com';
+      protocol  = 'tcp,udp';
+      port      = '0:65536';
     };
   };
 }

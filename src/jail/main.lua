@@ -29,63 +29,74 @@ local var = P'%{' * C(sym^1) * '}'
 local fmt = P'%{' * C(sym^1) * ':' * C(sym^1) * '}'
 
 local function LpegFormat(str, context)
+  local unknown
+
   local function fmt_sub(k, fmt)
     local v = context[k]
     if v == nil then
       local n = tonumber(k)
-      if n then v = context[k] end
+      if n then v = context[n] end
     end
 
-    if v ~= nil then 
+    if v ~= nil then
       return string.format("%"..fmt, context[k])
     end
+
+    unknown = unknown or {}
+    unknown[k] = ''
   end
 
   local function var_sub(k)
     local v = context[k]
     if v == nil then
       local n = tonumber(k)
-      if n then v = context[k] end
+      if n then v = context[n] end
     end
     if v ~= nil then
       return tostring(v)
     end
+    unknown = unknown or {}
+    unknown[k] = ''
   end
 
   local pattern = Cs((esc + (fmt / fmt_sub) + (var / var_sub) + any)^0)
 
-  return pattern:match(str)
+  return pattern:match(str), unknown
 end
 
 local function LuaFormat(str, context)
+  local unknown
+
   -- %{name:format}
   str = string.gsub(str, '%%%{([%w_][%w_]*)%:([-0-9%.]*[cdeEfgGiouxXsq])%}',
     function(k, fmt)
       local v = context[k]
       if v == nil then
         local n = tonumber(k)
-        if n then v = context[k] end
+        if n then v = context[n] end
       end
 
       if v ~= nil then 
         return string.format("%"..fmt, context[k])
       end
+      unknown = unknown or {}
+      unknown[k] = ''
     end
   )
 
-  return (
-    -- %{name}
-    str:gsub('%%%{([%w_][%w_]*)%}', function(k)
-      local v = context[k]
-      if v == nil then
-        local n = tonumber(k)
-        if n then v = context[k] end
-      end
-      if v ~= nil then
-        return tostring(v)
-      end
-    end)
-  )
+  -- %{name}
+  return str:gsub('%%%{([%w_][%w_]*)%}', function(k)
+    local v = context[k]
+    if v == nil then
+      local n = tonumber(k)
+      if n then v = context[n] end
+    end
+    if v ~= nil then
+      return tostring(v)
+    end
+    unknown = unknown or {}
+    unknown[k] = ''
+  end), unknown
 end
 
 Format = function(str, context)
@@ -153,53 +164,71 @@ local function action(jail, filter)
   filter.bantime = jail.bantime
   filter.name    = nil
 
-  local options
-  if jail.option then
-    options = {}
-    local context = DEFAULT.option and combine{filter, DEFAULT.option} or filter
-    for i, v in pairs(jail.option) do
-      options[i] = Format(v, context)
+  -- build jail parameters
+  local parameters
+  if jail.parameters then
+    parameters = {}
+    local context = DEFAULT.parameters and combine{filter, DEFAULT.parameters} or filter
+    for i, v in pairs(jail.parameters) do
+      local unknown
+      parameters[i], unknown = Format(v, context)
+      if unknown then
+        return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+      end
     end
   end
 
   local context
-  if options then
-    context = combine{filter, options, DEFAULT.option}
-  elseif DEFAULT.option then
-    
-    context = combine{filter, DEFAULT.option}
+  if parameters then
+    context = combine{filter, parameters, DEFAULT.parameters}
+  elseif DEFAULT.parameters then
+    context = combine{filter, DEFAULT.parameters}
   else
     context = filter
   end
 
   local actions = {}
-  if type(jail.action) == 'string' then 
-    actions[1] = Format(jail.action, context)
+  if type(jail.action) == 'string' then
+    local unknown
+    actions[1], unknown = Format(jail.action, context)
+    if unknown then
+      return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+    end
   else
+    local unknown
     for _, action in ipairs(jail.action) do
       if type(action) == 'string' then
-        actions[#actions + 1] = Format(action, context);
+        actions[#actions + 1], unknown = Format(action, context);
+        if unknown then
+          return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+        end
       else
-        local options
+        local parameters
         if action[2] then
-          options = {}
+          parameters = {}
           for name, value in pairs(action[2]) do
-            options[name] = Format(value, context)
+            parameters[name], unknown = Format(value, context)
+            if unknown then
+              return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+            end
           end
         end
-        actions[#actions + 1] = {Format(action[1], context), options}
+        local action_name, unknown = Format(action[1], context)
+        if unknown then
+          return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+        end
+        actions[#actions + 1] = {action_name, parameters}
       end
     end
   end
 
   local msg = cjson.encode{
-    filter  = filter.filter;
-    jail    = filter.jail;
-    bantime = filter.bantime;
-    host    = filter.host;
-    date    = filter.date;
-    action  = actions;
-    option  = options;
+    filter     = filter.filter;
+    jail       = filter.jail;
+    bantime    = filter.bantime;
+    host       = filter.host;
+    date       = filter.date;
+    action     = actions;
   }
 
   log.trace("action %s", msg)
@@ -227,7 +256,7 @@ local function j(t)
 
     -- apply default values
     for name, value in pairs(DEFAULT) do
-      if name ~= 'option' and t[name] == nil then
+      if name ~= 'parameters' and t[name] == nil then
         jail[name] = value
       end
     end
