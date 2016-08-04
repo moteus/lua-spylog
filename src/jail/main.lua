@@ -246,7 +246,7 @@ local function j(t)
 
     -- apply default values
     for name, value in pairs(DEFAULT) do
-      if name ~= 'parameters' and t[name] == nil then
+      if name ~= 'parameters' and jail[name] == nil then
         jail[name] = value
       end
     end
