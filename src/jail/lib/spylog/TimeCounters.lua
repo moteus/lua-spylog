@@ -2,6 +2,10 @@ local ztimer = require "lzmq.timer"
 local date   = require "date"
 
 -------------------------------------------------------------------------------
+-- Timers implementations
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
 local TimeCounter = {} do
 TimeCounter.__index = TimeCounter
 
@@ -205,7 +209,9 @@ function RpnBaseCounter:reset(now)
 end
 
 end
+-------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
 local RpnInternalCounter = setmetatable({}, RpnBaseCounter) do
 RpnInternalCounter.__index = RpnInternalCounter
 
@@ -217,7 +223,9 @@ function RpnInternalCounter:new(interval, resolution)
 end
 
 end
+-------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
 local RpnExternalCounter = setmetatable({}, RpnBaseCounter) do
 RpnExternalCounter.__index = RpnExternalCounter
 
@@ -296,6 +304,10 @@ function TimeCounters:raw(value)
 end
 
 end
+-------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------
+-- Jail API
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
@@ -383,6 +395,60 @@ end
 end
 -------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------
+local ok, ptree = pcall(require, "prefix_tree")
+local JailPrefixCounter if ok then 
+JailPrefixCounter = {}
+JailPrefixCounter.__index = JailPrefixCounter
+
+function JailPrefixCounter:new(jail)
+  local o = setmetatable({}, self)
+
+  local prefixes = jail.counter.prefix
+  if type(prefixes) == 'table' then
+    o._tree = ptree.new()
+    if prefixes[1] then
+      for _, prefix in ipairs(prefixes) do
+        o._tree:add(prefix, '')
+      end
+    else
+      for prefix, value in pairs(prefixes) do
+        o._tree:add(prefix, value)
+      end
+    end
+  else
+    o._tree = ptree.LoadPrefixFromFile(prefixes)
+  end
+
+  o._counter = JailCounter:new(jail)
+
+  return o
+end
+
+function JailPrefixCounter:inc(filter)
+  if filter.number and self._tree:find(filter.number) then
+    return self._counter:inc(filter)
+  end
+end
+
+function JailPrefixCounter:reset(filter)
+  if filter.number and self._tree:find(filter.number) then
+    return self._counter:reset(filter)
+  end
+end
+
+function JailPrefixCounter:purge(now)
+  return self._counter:purge(now)
+end
+
+function JailPrefixCounter:count()
+  return self._counter:count()
+end
+
+end
+-------------------------------------------------------------------------------
+
 return {
-  jail = JailCounter;
+  jail   = JailCounter;
+  prefix = JailPrefixCounter;
 }

@@ -108,7 +108,7 @@ end
 
 end
 
-local sub = zthreads.context():socket("SUB",{
+local sub, err = zthreads.context():socket("SUB",{
   [config.CONNECTIONS.JAIL.FILTER.type] = config.CONNECTIONS.JAIL.FILTER.address;
   subscribe = "";
 })
@@ -261,7 +261,19 @@ end
 local jail_counters = {}
 
 local function create_counter(jail)
-  local counter = Counter.jail:new( jail )
+  local counter
+
+  if jail.counter and jail.counter.prefix then
+    if not Counter.prefix then
+      log.alert('Prefix counter not avaliable')
+      return
+    end
+    counter = Counter.prefix:new( jail )
+  end
+
+  if not counter then
+    counter = Counter.jail:new( jail )
+  end
 
   return counter
 end
@@ -301,12 +313,14 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
 
     local value = counter:inc(t)
 
-    if value >= jail.maxretry then
-      counter:reset(t)
-      log.warning("[%s] %s - %d", jail.name, t.host, value)
-      action(jail, t) --! @note `action` may add some fields to `t`
-    else
-      log.trace("[%s] %s - %d", jail.name, t.host, value)
+    if value then
+      if value >= jail.maxretry then
+        counter:reset(t)
+        log.warning("[%s] %s - %d", jail.name, t.host, value)
+        action(jail, t) --! @note `action` may add some fields to `t`
+      else
+        log.trace("[%s] %s - %d", jail.name, t.host, value)
+      end
     end
   end
 end)
