@@ -1,5 +1,5 @@
 FILTER{ "freeswitch-ip-request";
-  enabled = true;
+  enabled = false;
   source  = "freeswitch";
   exclude = WHITE_IP;
   hint    = "[WARNING]";
@@ -10,7 +10,7 @@ FILTER{ "freeswitch-ip-request";
 }
 
 FILTER{ "freeswitch-auth-request";
-  enabled = true;
+  enabled = false;
   source  = "freeswitch";
   exclude = WHITE_IP;
   hint    = "[WARNING]";
@@ -20,7 +20,7 @@ FILTER{ "freeswitch-auth-request";
 };
 
 FILTER{ "freeswitch-auth-fail";
-  enabled = true;
+  enabled = false;
   source  = "freeswitch";
   exclude = WHITE_IP;
   hint    = "[WARNING]";

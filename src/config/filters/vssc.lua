@@ -1,5 +1,5 @@
 FILTER{ "vssc-setup";
-  enabled = true;
+  enabled = false;
   source  = "vssc";
   exclude = WHITE_IP;
   hint    = "setup request from";
@@ -10,7 +10,7 @@ FILTER{ "vssc-setup";
 }
 
 FILTER{ "vssc-auth-fail";
-  enabled = true;
+  enabled = false;
   source  = "vssc";
   exclude = WHITE_IP;
   hint    = "auth request";
@@ -21,7 +21,7 @@ FILTER{ "vssc-auth-fail";
 }
 
 FILTER{ "vssc-ip-request";
-  enabled = true;
+  enabled = false;
   source  = "vssc";
   exclude = WHITE_IP;
   hint    = "auth request";

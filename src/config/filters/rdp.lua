@@ -1,5 +1,5 @@
 FILTER{ "rdp-fail-access";
-  enabled = true;
+  enabled = false;
   source  = "trap:udp://127.0.0.1";
   exclude = WHITE_IP;
   trap    = {529, 4625};
