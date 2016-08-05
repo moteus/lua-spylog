@@ -141,8 +141,8 @@ local function init_service()
   end
 
   for name, cmd in pairs(config.ACTIONS) do
-    if cmd.on  then append_executer(cmd.on[1])  end
-    if cmd.off then append_executer(cmd.off[1]) end
+    if cmd.ban   then append_executer(cmd.ban[1])   end
+    if cmd.unban then append_executer(cmd.unban[1]) end
     log.info("Add new action: %s", tostring(name))
   end
 

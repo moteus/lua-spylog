@@ -1,12 +1,12 @@
 ACTION{"mail",
-  on  = { "@spylog.actions.mail", [["SpyLog ban <HOST>" "
+  ban   = { "@spylog.actions.mail", [["SpyLog ban <HOST>" "
     Filter: <FILTER>
     Jail:   <JAIL>
     Host:   <HOST>
     <MSG>
   "]]};
 
-  off = { "@spylog.actions.mail", [["SpyLog unban <HOST>" "
+  unban = { "@spylog.actions.mail", [["SpyLog unban <HOST>" "
     Filter: <FILTER>
     Jail:   <JAIL>
     Host:   <HOST>

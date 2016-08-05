@@ -159,24 +159,24 @@ function ActionDB:add(action)
     return
   end
 
-  if command.on then
-    local unique  = command.on.unique  or command.unique
-    local options = command.on.options or command.options
+  if command.ban then
+    local unique  = command.ban.unique  or command.unique
+    local options = command.ban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):fmt("%F %T")
-    action_cmd  = command.on[1]
-    action_args = command.on[2]
+    action_cmd  = command.ban[1]
+    action_args = command.ban[2]
 
     self:_add_command(unique, action, 'ban', action_cmd, action_args, options)
   end
 
-  if action.bantime and command.off then
-    local unique  = command.off.unique  or command.unique
-    local options = command.off.options or command.options
+  if action.bantime and command.unban then
+    local unique  = command.unban.unique  or command.unique
+    local options = command.unban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):addseconds(action.bantime):fmt("%F %T")
-    action_cmd  = command.off[1]
-    action_args = command.off[2]
+    action_cmd  = command.unban[1]
+    action_args = command.unban[2]
 
     self:_add_command(unique, action, 'unban', action_cmd, action_args, options)
   end
