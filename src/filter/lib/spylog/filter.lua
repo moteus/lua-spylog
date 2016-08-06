@@ -145,6 +145,11 @@ local function build_rex_filter(filter)
 
       if not result.date then result.date = os.date("%Y-%m-%d %H:%M:%S") end
 
+      if result.host and iputil.find_cidr(result.host, exclude_cidr) then
+        log.debug("[%s] match `%s` but excluded by cidr", filter.name, result.host)
+        return
+      end
+
       return result
     end
   else

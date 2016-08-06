@@ -40,7 +40,7 @@ local function tcp_cli_monitor(proto, address, opt, cb)
         end
       end)
 
-      log.info("Syslog monitor started on %s://%s:%d", proto, address, port)
+      log.error("[net/%s] connected to %s:%d", proto, address, port)
     end)
   end
 
