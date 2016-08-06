@@ -8,7 +8,7 @@ local function decode(fmt, ...)
   if fmt == 'rfc3164' then
     local mon, day, time
     pri, mon, day, time, host, msg = ...
-  elseif fmt == 'rfc3164' then
+  elseif fmt == 'rfc5424' then
     pri, ver, ts, host, app, procid, msgid, sdata, msg = ...
   end
   return pri, msg
