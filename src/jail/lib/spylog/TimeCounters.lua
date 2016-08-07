@@ -396,30 +396,12 @@ end
 -------------------------------------------------------------------------------
 
 -------------------------------------------------------------------------------
-local ok, ptree = pcall(require, "prefix_tree")
-local JailPrefixCounter if ok then 
-JailPrefixCounter = {}
+local JailPrefixCounter = {} do
 JailPrefixCounter.__index = JailPrefixCounter
 
 function JailPrefixCounter:new(jail)
-  local o = setmetatable({}, self)
-
-  local prefixes = jail.counter.prefix
-  if type(prefixes) == 'table' then
-    o._tree = ptree.new()
-    if prefixes[1] then
-      for _, prefix in ipairs(prefixes) do
-        o._tree:add(prefix, '')
-      end
-    else
-      for prefix, value in pairs(prefixes) do
-        o._tree:add(prefix, value)
-      end
-    end
-  else
-    o._tree = ptree.LoadPrefixFromFile(prefixes)
-  end
-
+  local o    = setmetatable({}, self)
+  o._tree    = jail.counter.prefix
   o._counter = JailCounter:new(jail)
 
   return o

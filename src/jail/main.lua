@@ -13,6 +13,9 @@ local Counter  = require "spylog.TimeCounters"
 local date     = require "date"
 local stp      = require "StackTracePlus"
 local exit     = require "spylog.exit"
+local path     = require "path"
+local ok, ptree = pcall(require, "prefix_tree")
+if not ok then ptree = nil end
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
 
@@ -250,11 +253,50 @@ local function j(t)
         jail[name] = value
       end
     end
+
+    -- load prefixes
+    if jail.counter and jail.counter.prefix then
+      if not ptree then
+        return nil, 'Prefix counter not avaliable'
+      end
+
+      local prefixes, tree = jail.counter.prefix
+
+      if type(prefixes) == 'table' then
+        tree = ptree.new()
+        if prefixes[1] then
+          for _, prefix in ipairs(prefixes) do
+            tree:add(prefix, '')
+          end
+        else
+          for prefix, value in pairs(prefixes) do
+            tree:add(prefix, value)
+          end
+        end
+      else
+        local base_prefix_dir = path.join(SERVICE.CONFIG_DIR, 'config', 'jails')
+        local full_path = path.fullpath(path.isfullpath(prefixes) or path.join(base_prefix_dir, prefixes))
+        log.debug('full path for prefix: %s', full_path)
+        if not path.isfile(full_path) then
+          return nil, string.format('can not find prefix file %s', full_path)
+        end
+        tree = ptree.LoadPrefixFromFile(full_path)
+      end
+
+      jail.counter.prefix = tree
+    end
+
   end
   return t
 end
 
-JAIL = j(config.JAILS)
+JAIL, err = j(config.JAILS)
+
+if not JAIL then
+  log.fatal("Can not load jails: %s", tostring(err))
+  ztimer.sleep(500)
+  return SERVICE.exit()
+end
 
 end
 
@@ -264,10 +306,6 @@ local function create_counter(jail)
   local counter
 
   if jail.counter and jail.counter.prefix then
-    if not Counter.prefix then
-      log.alert('Prefix counter not avaliable')
-      return
-    end
     counter = Counter.prefix:new( jail )
   end
 
