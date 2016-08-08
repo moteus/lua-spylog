@@ -167,11 +167,13 @@ local function j(t)
       else
         local base_prefix_dir = path.join(SERVICE.CONFIG_DIR, 'config', 'jails')
         local full_path = path.fullpath(path.isfullpath(prefixes) or path.join(base_prefix_dir, prefixes))
-        log.debug('full path for prefix: %s', full_path)
+        log.debug('[%s] full path for prefix: %s', jail.name, full_path)
         if not path.isfile(full_path) then
-          return nil, string.format('can not find prefix file %s', full_path)
+          return nil, string.format('[%s] can not find prefix file %s', jail.name, full_path)
         end
-        tree = ptree.LoadPrefixFromFile(full_path)
+        local ok
+        ok, tree = pcall(ptree.LoadPrefixFromFile, full_path)
+        if not ok then return nil, tree end
       end
 
       jail.counter.prefix = tree
