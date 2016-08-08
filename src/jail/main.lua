@@ -246,7 +246,9 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
 
     if value then
       if value >= jail.maxretry then
-        counter:reset(t)
+        if not jail.noreset
+          counter:reset(t)
+        end
         log.warning("[%s] %s - %d", jail.name, t.host, value)
         action(jail, t) --! @note `action` may add some fields to `t`
       else
