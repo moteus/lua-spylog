@@ -12,8 +12,6 @@ local json     = require "cjson"
 local dt = os.date("%Y-%m-%d %H:%M:%S")
 assert(dt == date(dt):fmt("%F %T"))
 
-
-
 local ActionDB = ut.class() do
 
 function ActionDB:__init(fileName)
