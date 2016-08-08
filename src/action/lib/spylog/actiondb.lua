@@ -1,6 +1,7 @@
 local config   = require "spylog.config"
 local Args     = require "spylog.args"
 local log      = require "spylog.log"
+local var      = require "spylog.var"
 local ut       = require "lluv.utils"
 local sqlite   = require "sqlite3"
 local path     = require "path"
@@ -11,23 +12,7 @@ local json     = require "cjson"
 local dt = os.date("%Y-%m-%d %H:%M:%S")
 assert(dt == date(dt):fmt("%F %T"))
 
-local combine do
 
-local mt = {
-  __index = function(self, k)
-    for i = 1, #self do
-      if self[i][k] ~= nil then
-        return self[i][k]
-      end
-    end
-  end
-}
-
-combine = function(t)
-  return setmetatable(t, mt)
-end
-
-end
 
 local ActionDB = ut.class() do
 
@@ -88,7 +73,7 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
 
   local context, action_name = action, action.action
   if action.parameters then
-    context = combine{action, action.parameters}
+    context = var.combine{action, action.parameters}
   end
 
   if unique then -- control duplicate

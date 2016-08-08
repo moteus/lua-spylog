@@ -13,103 +13,12 @@ local Counter  = require "spylog.TimeCounters"
 local date     = require "date"
 local stp      = require "StackTracePlus"
 local exit     = require "spylog.exit"
+local var      = require "spylog.var"
 local path     = require "path"
 local ok, ptree = pcall(require, "prefix_tree")
 if not ok then ptree = nil end
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
-
-local Format do 
-
-local lpeg = require "lpeg"
-
-local P, C, Cs, Ct, Cp, S = lpeg.P, lpeg.C, lpeg.Cs, lpeg.Ct, lpeg.Cp, lpeg.S
-
-local any = P(1)
-local sym = any-S':}'
-local esc = P'%%' / '%%'
-local var = P'%{' * C(sym^1) * '}'
-local fmt = P'%{' * C(sym^1) * ':' * C(sym^1) * '}'
-
-local function LpegFormat(str, context)
-  local unknown
-
-  local function fmt_sub(k, fmt)
-    local v = context[k]
-    if v == nil then
-      local n = tonumber(k)
-      if n then v = context[n] end
-    end
-
-    if v ~= nil then
-      return string.format("%"..fmt, context[k])
-    end
-
-    unknown = unknown or {}
-    unknown[k] = ''
-  end
-
-  local function var_sub(k)
-    local v = context[k]
-    if v == nil then
-      local n = tonumber(k)
-      if n then v = context[n] end
-    end
-    if v ~= nil then
-      return tostring(v)
-    end
-    unknown = unknown or {}
-    unknown[k] = ''
-  end
-
-  local pattern = Cs((esc + (fmt / fmt_sub) + (var / var_sub) + any)^0)
-
-  return pattern:match(str), unknown
-end
-
-local function LuaFormat(str, context)
-  local unknown
-
-  -- %{name:format}
-  str = string.gsub(str, '%%%{([%w_][%w_]*)%:([-0-9%.]*[cdeEfgGiouxXsq])%}',
-    function(k, fmt)
-      local v = context[k]
-      if v == nil then
-        local n = tonumber(k)
-        if n then v = context[n] end
-      end
-
-      if v ~= nil then 
-        return string.format("%"..fmt, context[k])
-      end
-      unknown = unknown or {}
-      unknown[k] = ''
-    end
-  )
-
-  -- %{name}
-  return str:gsub('%%%{([%w_][%w_]*)%}', function(k)
-    local v = context[k]
-    if v == nil then
-      local n = tonumber(k)
-      if n then v = context[n] end
-    end
-    if v ~= nil then
-      return tostring(v)
-    end
-    unknown = unknown or {}
-    unknown[k] = ''
-  end), unknown
-end
-
-Format = function(str, context)
-  if string.find(str, '%%', 1, true) then
-    return LpegFormat(str, context)
-  end
-  return LuaFormat(str, context)
-end
-
-end
 
 local sub, err = zthreads.context():socket("SUB",{
   [config.CONNECTIONS.JAIL.FILTER.type] = config.CONNECTIONS.JAIL.FILTER.address;
@@ -132,24 +41,6 @@ if not pub then
   return SERVICE.exit()
 end
 
-local combine do
-
-local mt = {
-  __index = function(self, k)
-    for i = 1, #self do
-      if self[i][k] ~= nil then
-        return self[i][k]
-      end
-    end
-  end
-}
-
-combine = function(t)
-  return setmetatable(t, mt)
-end
-
-end
-
 local function action(jail, filter)
   -- convert `filter` to message
   filter.filter  = filter.name
@@ -161,10 +52,10 @@ local function action(jail, filter)
   local parameters
   if jail.parameters then
     parameters = {}
-    local context = DEFAULT.parameters and combine{filter, DEFAULT.parameters} or filter
+    local context = DEFAULT.parameters and var.combine{filter, DEFAULT.parameters} or filter
     for i, v in pairs(jail.parameters) do
       local unknown
-      parameters[i], unknown = Format(v, context)
+      parameters[i], unknown = var.format(v, context)
       if unknown then
         return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
       end
@@ -173,9 +64,9 @@ local function action(jail, filter)
 
   local context
   if parameters then
-    context = combine{filter, parameters, DEFAULT.parameters}
+    context = var.combine{filter, parameters, DEFAULT.parameters}
   elseif DEFAULT.parameters then
-    context = combine{filter, DEFAULT.parameters}
+    context = var.combine{filter, DEFAULT.parameters}
   else
     context = filter
   end
@@ -183,7 +74,7 @@ local function action(jail, filter)
   local actions = {}
   if type(jail.action) == 'string' then
     local unknown
-    actions[1], unknown = Format(jail.action, context)
+    actions[1], unknown = var.format(jail.action, context)
     if unknown then
       return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
     end
@@ -191,7 +82,7 @@ local function action(jail, filter)
     local unknown
     for _, action in ipairs(jail.action) do
       if type(action) == 'string' then
-        actions[#actions + 1], unknown = Format(action, context)
+        actions[#actions + 1], unknown = var.format(action, context)
         if unknown then
           return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
         end
@@ -200,13 +91,13 @@ local function action(jail, filter)
         if action[2] then
           parameters = {}
           for name, value in pairs(action[2]) do
-            parameters[name], unknown = Format(value, context)
+            parameters[name], unknown = var.format(value, context)
             if unknown then
               return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
             end
           end
         end
-        local action_name, unknown = Format(action[1], context)
+        local action_name, unknown = var.format(action[1], context)
         if unknown then
           return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
         end
