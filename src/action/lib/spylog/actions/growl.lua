@@ -36,9 +36,11 @@ return function(action, cb)
     log.warning("[%s] Unused command arguments: %q", action.jail, tail)
   end
 
-  local subject  = parameters and parameters.fullsubj or args[1]
-  local message  = parameters and parameters.fullmsg  or args[2]
-  local priority = parameters and parameters.priority
+  local subject     = parameters and parameters.fullsubj or args[1]
+  local message     = parameters and parameters.fullmsg  or args[2]
+  local priority    = parameters and parameters.priority
+  local icon        = parameters and parameters.icon
+  local sticky      = parameters and parameters.sticky
   local action_type = string.upper(action.type)
 
   local address, port
@@ -58,7 +60,13 @@ return function(action, cb)
   })
 
   local function notify()
-    growl:notify(action_type, {title = subject, text = message}, function(self, err, msg)
+    growl:notify(action_type, {
+      title    = subject,
+      text     = message,
+      priority = priority,
+      sticky   = sticky,
+      icon     = icon,
+    }, function(self, err, msg)
       if err then return uv.defer(cb, action, false, err) end
       return uv.defer(cb, action, true)
     end)
