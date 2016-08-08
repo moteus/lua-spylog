@@ -36,8 +36,9 @@ return function(action, cb)
     log.warning("[%s] Unused command arguments: %q", action.jail, tail)
   end
 
-  local subject = parameters and parameters.fullsubj or args[1]
-  local message = parameters and parameters.fullmsg  or args[2]
+  local subject  = parameters and parameters.fullsubj or args[1]
+  local message  = parameters and parameters.fullmsg  or args[2]
+  local priority = parameters and parameters.priority
   local action_type = string.upper(action.type)
 
   local address, port
