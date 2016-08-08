@@ -42,7 +42,7 @@ local function trap_filter(filter, t)
     local msg = t.data[i][2]
     if type(msg) == 'string' then
       local date, ip = filter.match(msg)
-      if ip then return date, ip end
+      if date then return date, ip end
     end
   end
 end
