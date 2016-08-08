@@ -7,17 +7,20 @@ local function tcp_cli_monitor(proto, address, opt, cb)
   local address, port = ut.split_first(address,":", true)
   port = assert(tonumber(port), 'port is required')
 
+  local log_header = string.format('[net/%s] [%s:%d]', proto, address, port)
+
   local eol = opt and opt.eol or '\r\n'
-  local reconnect_timeout = opt and opt.reconnect or 30000
+  local reconnect_timeout = (opt and opt.reconnect or 30) * 1000
 
-  local connect, reconnect
+  local reconnect_timer = uv.timer(0)
 
-  function connect()
+  local function connect()
+    log.info("%s connecting ...", log_header)
     uv.tcp():connect(address, port, function(self, err)
       if err then
         self:close()
-        log.error("[net/%s] can not connect to %s:%d monitor: %s", proto, address, port, tostring(err))
-        return reconnect()
+        log.error("%s can not connect: %s", log_header, tostring(err))
+        return reconnect_timer:again(reconnect_timeout)
       end
 
       local buffer = ut.Buffer.new(eol)
@@ -25,33 +28,26 @@ local function tcp_cli_monitor(proto, address, opt, cb)
       self:start_read(function(self, err, data)
         if err then
           self:close()
-          log.error("[net/%s] recv error: %s", proto, tostring(err))
-          return reconnect()
+          log.error("%s recv error: %s", log_header, tostring(err))
+          return reconnect_timer:again(reconnect_timeout)
         end
 
         buffer:append(data)
         while true do
           local line = buffer:read_line()
           if not line then break end
-
-          log.trace("[net/%s] recv: %q", proto, line)
-
           cb(line)
         end
       end)
 
-      log.error("[net/%s] connected to %s:%d", proto, address, port)
+      log.info("%s connected", log_header)
     end)
   end
 
-  function reconnect()
-    uv.timer(reconnect_timeout, function(self)
-      self:close()
-      connect()
-    end)
-  end
-
-  connect()
+  reconnect_timer:start(function(self)
+    self:stop()
+    connect()
+  end)
 end
 
 local function net_monitor(endpoint, opt, cb)
@@ -61,7 +57,7 @@ local function net_monitor(endpoint, opt, cb)
     return tcp_cli_monitor(proto, address, opt, cb)
   end
 
-  log.fatal('unknown protocol: %', proto)
+  log.fatal('[net] unknown protocol: %', proto)
 
   assert(false)
 end
@@ -74,4 +70,3 @@ return {
   monitor = net_monitor;
   filter = net_filter;
 }
-
