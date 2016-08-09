@@ -373,7 +373,7 @@ function JailCounter:reset(filter)
     now = date_to_ts(filter.date)
   end
 
-  self._counter:reset(now)
+  self._counter:reset(filter.host, now)
 end
 
 function JailCounter:purge(now)
