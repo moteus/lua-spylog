@@ -168,6 +168,7 @@ function RpnBaseCounter:_refresh(now)
   if elapsed > self._double_interval then
     for i = 0, N - 1 do self._values[i] = 0 end
     self._last_time = now
+    self._total = 0
   elseif elapsed >= self._interval then
     local last_valid_time = now - N + 1
     local last_count_time = self._last_time
