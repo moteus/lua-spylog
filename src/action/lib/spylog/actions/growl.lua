@@ -110,7 +110,7 @@ return function(action, cb)
 
     log.debug('%s notify %s: [%s] %s', log_header, address, notify_type, subject)
 
-    if reged[address] then return send_register() end
+    if not reged[address] then return send_register() end
     return send_notify()
   end
 
