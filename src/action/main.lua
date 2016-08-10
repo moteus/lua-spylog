@@ -30,7 +30,7 @@ local actions = ActionDB.new(
 
 local action_timer
 
-local sub = zthreads.context():socket("SUB",{
+local sub, err = zthreads.context():socket("SUB",{
   [config.CONNECTIONS.ACTION.JAIL.type] = config.CONNECTIONS.ACTION.JAIL.address;
   subscribe = "";
 })
