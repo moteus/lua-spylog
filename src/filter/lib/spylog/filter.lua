@@ -132,8 +132,8 @@ local function build_rex_filter(filter)
 
     local failregex = type(filter.failregex) == 'string' and {filter.failregex} or filter.failregex
 
-    for i = 1, #captures do assert(failregex[i], 'No regex for capture #' .. i) end
-    for i = 1, #failregex do assert(captures[i], 'No capture for regex #' .. i) end
+    for i = 1, #captures do assert(failregex[i], '[' .. filter.name .. ']' .. 'No regex for capture #' .. i) end
+    for i = 1, #failregex do assert(captures[i], '[' .. filter.name .. ']' .. 'No capture for regex #' .. i) end
 
     result = function(rid, ...)
       if not rid then return end
