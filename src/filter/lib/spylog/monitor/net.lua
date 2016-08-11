@@ -3,6 +3,8 @@ local ut     = require "lluv.utils"
 local log    = require "spylog.log"
 local syslog = require "spylog.syslog"
 
+local MAX_LINE_LENGTH = 4096
+
 local function tcp_cli_monitor(proto, address, opt, cb)
   local address, port = ut.split_first(address,":", true)
   port = assert(tonumber(port), 'port is required')
@@ -35,7 +37,13 @@ local function tcp_cli_monitor(proto, address, opt, cb)
         buffer:append(data)
         while true do
           local line = buffer:read_line()
-          if not line then break end
+          if not line then
+            if buffer.size and (buffer:size() > MAX_LINE_LENGTH) then
+              log.alert('%s get too long line: %d `%s...`', log_header, buffer:size(), buffer:read_n(256))
+              buffer:reset()
+            end
+            break
+          end
           cb(line)
         end
       end)
