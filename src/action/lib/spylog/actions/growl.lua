@@ -32,6 +32,17 @@ local function decode_growl_address(url)
   return address, port, pass, hash, enc
 end
 
+local function is_growl_ok(msg)
+  if msg:status() == '-ERROR' then
+    return nil, string.format("[GROWL] %s (%s)",
+      msg:header('Error-Description') or '----',
+      msg:header('Error-Code') or '----'
+    )
+  end
+
+  return true
+end
+
 return function(action, cb)
   local options    = action.options
   local parameters = action.action.parameters
@@ -57,9 +68,9 @@ return function(action, cb)
   local sticky      = parameters and parameters.sticky
   local notify_type = string.upper(action.type)
 
-  local count, growl, growl_err
+  local count, growl_err
 
-  local function send_notify(growl)
+  local function send_notify(growl, address)
     growl:notify(notify_type, {
       title    = subject,
       text     = message,
@@ -67,41 +78,54 @@ return function(action, cb)
       sticky   = sticky,
       icon     = icon,
     }, function(self, err, msg)
+      if not err then local ok ok, err = is_growl_ok(msg) end
+
       count = count - 1
       growl_err = growl_err or err
+
+      if err then
+        log.error('%s can not send notify to %s: %s', log_header, address, tostring(err))
+      end
+
       if count > 0 then return end
+
       if growl_err then
         uv.defer(cb, action, false, growl_err)
       else
         uv.defer(cb, action, true)
       end
+
       log.debug('%s execute done', log_header)
     end)
   end
 
-  local function send_register(growl)
+  local function send_register(growl, address)
     growl:register(function(self, err, msg)
+      if not err then local ok ok, err = is_growl_ok(msg) end
+
       if err then
+        log.error('%s can not register on %s: %s', log_header, count, address, tostring(err))
+
         count = count - 1
-        if count <= 0 then
-          growl_err = err
-        else
+
+        if count == 0 then
           uv.defer(cb, action, false, err)
           log.debug('%s execute done', log_header)
-        end
+        else growl_err = err end
+
         return
       end
 
       reged[address] = true
 
-      send_notify()
+      send_notify(growl, address)
     end)
   end
 
   local function notify(address, port, password, hash, encrypt)
     address = address or '127.0.0.1';
 
-    growl = GNTP.Connector.lluv(app, {
+    local growl = GNTP.Connector.lluv(app, {
       host    = address;
       port    = port or '23053';
       pass    = password;
@@ -111,8 +135,8 @@ return function(action, cb)
 
     log.debug('%s notify %s: [%s] %s', log_header, address, notify_type, subject)
 
-    if not reged[address] then return send_register(growl) end
-    return send_notify(growl)
+    if not reged[address] then return send_register(growl, address) end
+    return send_notify(growl, address)
   end
 
   local dest = parameters and parameters.dest
