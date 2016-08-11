@@ -37,6 +37,7 @@ return function(action, cb)
 
   local subject = parameters and parameters.fullsubj or args[1]
   local message = parameters and parameters.fullmsg  or args[2]
+  local charset = parameters and parameters.charset  or options.charset
 
   ut.corun(function()
     local ok, err = sendmail_{
@@ -58,7 +59,10 @@ return function(action, cb)
         address =  parameters and parameters.dest     or options.to.address;
       },
 
-      message = { subject, message }
+      message = {
+        subject = {subject, charset = charset},
+        text    = {message, charset = charset},
+      }
     }
 
     uv.defer(cb, action, ok, err)
