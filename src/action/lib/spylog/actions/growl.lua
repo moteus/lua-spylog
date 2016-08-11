@@ -57,10 +57,9 @@ return function(action, cb)
   local sticky      = parameters and parameters.sticky
   local notify_type = string.upper(action.type)
 
-  local count, address, port, password, encrypt, hash
-  local growl, growl_err
+  local count, growl, growl_err
 
-  local function send_notify()
+  local function send_notify(growl)
     growl:notify(notify_type, {
       title    = subject,
       text     = message,
@@ -80,7 +79,7 @@ return function(action, cb)
     end)
   end
 
-  local function send_register()
+  local function send_register(growl)
     growl:register(function(self, err, msg)
       if err then
         count = count - 1
@@ -99,9 +98,11 @@ return function(action, cb)
     end)
   end
 
-  local function notify()
+  local function notify(address, port, password, hash, encrypt)
+    address = address or '127.0.0.1';
+
     growl = GNTP.Connector.lluv(app, {
-      host    = address or '127.0.0.1';
+      host    = address;
       port    = port or '23053';
       pass    = password;
       encrypt = encrypt;
@@ -110,8 +111,8 @@ return function(action, cb)
 
     log.debug('%s notify %s: [%s] %s', log_header, address, notify_type, subject)
 
-    if not reged[address] then return send_register() end
-    return send_notify()
+    if not reged[address] then return send_register(growl) end
+    return send_notify(growl)
   end
 
   local dest = parameters and parameters.dest
@@ -120,9 +121,9 @@ return function(action, cb)
     dest = ut.split(dest, '[;,]')
     count = #dest
     for i = 1, #dest do
-      address, port, password, hash, encrypt = decode_growl_address(dest[i])
-      if address then
-        notify()
+      local address, port, password, hash, encrypt = decode_growl_address(dest[i])
+      if address and #address > 0 then
+        notify(address, port, password, hash, encrypt)
       else
         log.error('%s Invalid growl destination: %s', log_header, dest[i])
         count = count - 1
@@ -136,19 +137,20 @@ return function(action, cb)
 
   count = 1
 
+  local address, port, password, hash, encrypt
   if type(dest) == 'string' then
     address, port, password, hash, encrypt = decode_growl_address(dest)
-    if not address then
+    if (not address) or #address == 0 then
       log.error('%s Invalid growl destination: %s', log_header, dest)
       return uv.defer(cb, action, false, 'Invalid destinations')
     end
   elseif options then
     address  = options.address
     port     = options.port
-    password = options.password;
-    hash     = options.hash;
-    encrypt  = options.encrypt;
+    password = options.password
+    hash     = options.hash
+    encrypt  = options.encrypt
   end
 
-  notify()
+  notify(address, port, password, hash, encrypt)
 end
