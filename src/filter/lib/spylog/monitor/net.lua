@@ -1,7 +1,6 @@
 local uv     = require "lluv"
 local ut     = require "lluv.utils"
 local log    = require "spylog.log"
-local syslog = require "spylog.syslog"
 
 local MAX_LINE_LENGTH = 4096
 
