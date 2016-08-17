@@ -68,3 +68,10 @@ JAIL{"voip-auth-fail";
 ### To support `mail` action
  - [lluv-ssl](https://luarocks.org/modules/moteus/lluv-ssl)
  - [sendmail](https://luarocks.org/modules/moteus/sendmail)
+
+### To support `growl` action
+ - [gntp](https://luarocks.org/modules/moteus/gntp)
+ - [openssl](https://luarocks.org/modules/zhaozg/openssl)
+
+### To support `esl` source type
+ - [lluv-esl](https://luarocks.org/modules/moteus/lluv-esl)
