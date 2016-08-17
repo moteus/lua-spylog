@@ -331,6 +331,7 @@ function JailCounter:new(jail)
   o._external   = jail.counter and jail.counter.time == 'filter'
   o._accumulate = jail.counter and jail.counter.type == 'accumulate'
   o._fixed      = jail.counter and jail.counter.type == 'fixed'
+  o._value      = jail.counter and jail.counter.value or 'value'
 
   if not o._fixed then
     local resolution = jail.counter and jail.counter.resolution
@@ -349,7 +350,7 @@ end
 
 function JailCounter:inc(filter)
   if self._fixed then
-    return tonumber(filter.value) or 1
+    return tonumber(filter[self._value]) or 1
   end
 
   local now
@@ -359,7 +360,7 @@ function JailCounter:inc(filter)
 
   local inc
   if self._accumulate then
-    inc = tonumber(filter.value)
+    inc = tonumber(filter[self._value])
   end
 
   return self._counter:inc(filter.host, inc, now)
