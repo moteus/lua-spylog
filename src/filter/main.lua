@@ -143,6 +143,10 @@ local function init_service()
       monitor.FILTER[#monitor.FILTER + 1] = filter
     end
   end
+
+  if not next(sources) then
+    log.warning("there no active filters")
+  end
 end
 
 local ok, err = pcall(init_service)
