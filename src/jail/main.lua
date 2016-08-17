@@ -127,15 +127,18 @@ log.notice("Connected to filters")
 local JAIL do
 
 local function j(t)
-  for i = 1, #t do
+  local jails = {}
+  for i = 1, #t do if t[i].enabled or (t[i].enabled == nil) then
     local jail = t[i]
+    jails[#jails + 1] = jail
+
     jail.name = jail.name or jail[1]
     if type(jail.filter) == 'table' then
       for j = 1, #jail.filter do
-        t[ jail.filter[j] ] = jail
+        jails[ jail.filter[j] ] = jail
       end
     else
-      t[ jail.filter ] = jail
+      jails[ jail.filter ] = jail
     end
 
     -- apply default values
@@ -179,8 +182,9 @@ local function j(t)
       jail.counter.prefix = tree
     end
 
-  end
-  return t
+  end end
+
+  return jails
 end
 
 JAIL, err = j(config.JAILS)
@@ -189,6 +193,10 @@ if not JAIL then
   log.fatal("Can not load jails: %s", tostring(err))
   ztimer.sleep(500)
   return SERVICE.exit()
+end
+
+if not next(JAIL) then
+  log.warning('there no any active jails')
 end
 
 end

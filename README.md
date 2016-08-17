@@ -2,7 +2,7 @@
 
 The main goal of this project is provide [fail2ban](http://www.fail2ban.org) functionality to Windows.
 
-## Configuration
+## Install/Start
 The `lua-spylog` consist of three services.
 
  * filter - read logs from sources and extract date(optional) and IP and send them to `jail` service.
@@ -14,6 +14,39 @@ The `lua-spylog` consist of three services.
 All services can be run as separate process or as thread in one multithreaded process.
 To run spylog as Windows service you can use [LuaService](https://github.com/moteus/luaservice).
 Also works with [nssm](http://nssm.cc) service helper.
+
+## Configuration
+
+### Detect auth fail on FreeSWITCH system
+```Lua
+-- config/sources/freeswitch.lua
+SOURCE{"freeswitch",
+  "esl:ClueCon@127.0.0.1:8021",
+  level = 'WARNING';
+}
+```
+```Lua
+-- config/filters/freeswitch.lua
+FILTER{ "freeswitch-auth-fail";
+  enabled = true;
+  source  = "freeswitch";
+  failregex = {
+    "^(%d%d%d%d%-%d%d%-%d%d %d%d:%d%d:%d%d%.%d+) %[WARNING%] sofia_reg.c:%d+ SIP auth failure %([A-Z]+%) on sofia profile %'[^']+%' for %[.-%] from ip ([0-9.]+)%s*$";
+    "^(%d%d%d%d%-%d%d%-%d%d %d%d:%d%d:%d%d%.%d+) %[WARNING%] sofia.c:%d+ IP ([0-9.]+) Rejected by acl \"[^\"]*\"%s*$";
+  }
+};
+```
+```Lua
+-- config/jails/freeswitch.lua
+JAIL{"voip-auth-fail";
+  enabled  = true;
+  filter   = {"freeswitch-auth-fail"};
+  findtime = 600;
+  maxretry = 3;
+  bantime  = 3600 * 24;
+  action   = {"mail", "growl", "ipsec"};
+}
+```
 
 ## Dependencies
  - [bit32](https://luarocks.org/modules/siffiejoe/bit32)
