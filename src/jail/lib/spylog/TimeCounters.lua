@@ -332,6 +332,7 @@ function JailCounter:new(jail)
   o._accumulate = jail.counter and jail.counter.type == 'accumulate'
   o._fixed      = jail.counter and jail.counter.type == 'fixed'
   o._value      = jail.counter and jail.counter.value or 'value'
+  o._banwhat    = jail.counter and jail.counter.banwhat or 'host'
 
   if not o._fixed then
     local resolution = jail.counter and jail.counter.resolution
@@ -363,7 +364,7 @@ function JailCounter:inc(filter)
     inc = tonumber(filter[self._value])
   end
 
-  return self._counter:inc(filter.host, inc, now)
+  return self._counter:inc(filter[self._banwhat], inc, now)
 end
 
 function JailCounter:reset(filter)
@@ -374,7 +375,7 @@ function JailCounter:reset(filter)
     now = date_to_ts(filter.date)
   end
 
-  self._counter:reset(filter.host, now)
+  self._counter:reset(filter[self._banwhat], now)
 end
 
 function JailCounter:purge(now)

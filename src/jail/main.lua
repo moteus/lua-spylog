@@ -235,7 +235,7 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
   log.trace("%s", msg)
 
   local t = cjson.decode(msg)
-  if not (t and t.name and t.date and t.host) then
+  if not (t and t.name and t.date) then
     log.error("invalid msg: ", msg:sub(128))
     return
   end
@@ -244,6 +244,12 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
   if not jail then
     log.warning("unknown jail for filter `%s`", t.name)
   else
+    local banwhat = jail.banwhat or 'host'
+    if not t[banwhat] then
+      log.error('filter `%s` does not provide `%s` capture', t.name, banwhat)
+      return
+    end
+
     local counter = jail_counters[t.name]
     if not counter then
       counter = create_counter(jail)
@@ -254,13 +260,11 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
 
     if value then
       if value >= jail.maxretry then
-        if not jail.noreset then
-          counter:reset(t)
-        end
-        log.warning("[%s] %s - %d", jail.name, t.host, value)
+        counter:reset(t)
+        log.warning("[%s] %s - %d", jail.name, t[banwhat], value)
         action(jail, t) --! @note `action` may add some fields to `t`
       else
-        log.trace("[%s] %s - %d", jail.name, t.host, value)
+        log.trace("[%s] %s - %d", jail.name, t[banwhat], value)
       end
     end
   end
