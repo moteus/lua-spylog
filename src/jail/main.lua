@@ -41,13 +41,11 @@ if not pub then
   return SERVICE.exit()
 end
 
-local function action(jail, filter)
-  -- convert `filter` to message
-  filter.filter  = filter.name
+local function action(jail, filter, value)
+  -- extend filter capture
   filter.jail    = jail.name
   filter.bantime = jail.bantime
-  filter.name    = nil
-
+  filter.counter = value
   -- build jail parameters
   local parameters
   if jail.parameters then
@@ -234,37 +232,37 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
 
   log.trace("%s", msg)
 
-  local t = cjson.decode(msg)
-  if not (t and t.name and t.date) then
+  local capture = cjson.decode(msg)
+  if not (capture and capture.filter and capture.date) then
     log.error("invalid msg: ", msg:sub(128))
     return
   end
 
-  local jail = JAIL[t.name]
+  local jail = JAIL[capture.filter]
   if not jail then
-    log.warning("unknown jail for filter `%s`", t.name)
+    log.warning("unknown jail for filter `%s`", capture.filter)
   else
     local banwhat = jail.banwhat or 'host'
-    if not t[banwhat] then
-      log.error('filter `%s` does not provide `%s` capture', t.name, banwhat)
+    if not capture[banwhat] then
+      log.error('filter `%s` does not provide `%s` capture', capture.filter, banwhat)
       return
     end
 
-    local counter = jail_counters[t.name]
+    local counter = jail_counters[capture.filter]
     if not counter then
       counter = create_counter(jail)
-      jail_counters[t.name] = counter
+      jail_counters[capture.filter] = counter
     end
 
-    local value = counter:inc(t)
+    local value = counter:inc(capture)
 
     if value then
       if value >= jail.maxretry then
-        counter:reset(t)
-        log.warning("[%s] %s - %d", jail.name, t[banwhat], value)
-        action(jail, t) --! @note `action` may add some fields to `t`
+        counter:reset(capture)
+        log.warning("[%s] %s - %d", jail.name, capture[banwhat], value)
+        action(jail, capture, value) --! @note `action` may add some fields to `capture`
       else
-        log.trace("[%s] %s - %d", jail.name, t[banwhat], value)
+        log.trace("[%s] %s - %d", jail.name, capture[banwhat], value)
       end
     end
   end
