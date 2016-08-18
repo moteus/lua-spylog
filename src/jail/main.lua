@@ -41,6 +41,34 @@ if not pub then
   return SERVICE.exit()
 end
 
+local function build_action(jail, action, context)
+  if type(action) == 'string' then
+    local unknown
+    action, unknown = var.format(action, context)
+    if unknown then
+      return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+    end
+    return {action}
+  end
+
+  local name, unknown, parameters = var.format(action[1], context)
+  if unknown then
+    return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+  end
+
+  if action[2] then
+    context.action, parameters = name, {}
+    for name, value in pairs(action[2]) do
+      parameters[name], unknown = var.format(value, context)
+      if unknown then
+        return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+      end
+    end
+  end
+
+  return {name, parameters}
+end
+
 local function action(jail, filter, value)
   -- extend filter capture
   filter.jail    = jail.name
@@ -71,38 +99,25 @@ local function action(jail, filter, value)
 
   local actions = {}
   if type(jail.action) == 'string' then
-    local unknown
-    actions[1], unknown = var.format(jail.action, context)
-    if unknown then
-      return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-    end
+    local action = build_action(jail, jail.action, context)
+    if not action then return end
+    actions[1] = action
   else
-    local unknown
     for _, action in ipairs(jail.action) do
-      if type(action) == 'string' then
-        actions[#actions + 1], unknown = var.format(action, context)
-        if unknown then
-          return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-        end
-      else
-        local parameters
-        if action[2] then
-          parameters = {}
-          for name, value in pairs(action[2]) do
-            parameters[name], unknown = var.format(value, context)
-            if unknown then
-              return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-            end
-          end
-        end
-        local action_name, unknown = var.format(action[1], context)
-        if unknown then
-          return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-        end
-        actions[#actions + 1] = {action_name, parameters}
-      end
+      action = build_action(jail, action, context)
+      if not action then return end
+      actions[#actions + 1] = action
     end
   end
+
+  require "pp" {
+    filter     = filter.filter;
+    jail       = filter.jail;
+    bantime    = filter.bantime;
+    host       = filter.host;
+    date       = filter.date;
+    action     = actions;
+  }
 
   local msg = cjson.encode{
     filter     = filter.filter;
