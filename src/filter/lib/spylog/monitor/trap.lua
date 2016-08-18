@@ -41,8 +41,8 @@ local function trap_filter(filter, t)
   for i = 1, #t.data do
     local msg = t.data[i][2]
     if type(msg) == 'string' then
-      local date, ip = filter.match(msg)
-      if date then return date, ip end
+      local capture = filter.match(msg)
+      if capture then return capture end
     end
   end
 end
