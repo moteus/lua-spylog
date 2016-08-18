@@ -96,31 +96,40 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
 
   log.trace("%s", msg)
 
-  local t = cjson.decode(msg)
-  if not (t and t.action and t.date and t.host) then
+  local task = cjson.decode(msg)
+  if not (task and task.action and task.date) then
     log.error("invalid msg: %q", msg:sub(128))
     return
   end
 
-  if type(t.action) == 'table' then
-    local act = t.action
-    for i = 1, #act do
-      local d = t.date
-
-      t.action = act[i]
-      if type(t.action) == 'table' then
-        t.action, t.parameters = t.action[1], t.action[2]
-      else
-        t.parameters = nil
-      end
-
-      actions:add(t)
-
-      t.date = d
-    end
-  else
-    actions:add(t)
+  if type(task.action) ~= 'table' then
+    log.error("invalid action format: %q", msg:sub(128))
+    return
   end
+
+  local task_actions = task.action
+  for i = 1, #task_actions do
+    local action = task_actions[i]
+    if type(action) ~= 'table' then
+      log.error("invalid action format: %q", msg:sub(128))
+      return
+    end
+  end
+
+  -- ugly hack. `actions.add` method change date field.
+  -- so we have reset this field each time
+  local date = task.date
+
+  for i = 1, #task_actions do
+    local action = task_actions[i]
+
+    -- build task table to each action
+    task.date       = date
+    task.action     = action[1]
+    task.parameters = action[2]
+    actions:add(task)
+  end
+
 end)
 
 action_timer = uv.timer():start(0, 10000, function()
