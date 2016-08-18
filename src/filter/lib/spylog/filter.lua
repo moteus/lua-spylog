@@ -126,6 +126,9 @@ local function build_rex_filter(filter)
   if filter.capture then
     local captures = filter.capture
 
+    -- reuse same table for all matches
+    local result_storage = {}
+
     if type(captures[1]) ~= 'table' then
       captures = {captures}
     end
@@ -137,7 +140,7 @@ local function build_rex_filter(filter)
 
     result = function(rid, ...)
       if not rid then return end
-      local capture, result = captures[rid], {}
+      local capture, result = captures[rid], result_storage
       for i = 1, #capture do
         local name = capture[i]
         result[name] = select(i, ...)
