@@ -106,6 +106,46 @@ local ENGINES = {
   end;
 }
 
+local defaul_result = function(captures, result, cidr, rule_id, date, host)
+  if not rule_id then return end
+
+  if not host then host, date = date, os.date("%Y-%m-%d %H:%M:%S") end
+
+  if iputil.find_cidr(host, cidr) then
+    log.debug("[%s] match `%s` but excluded by cidr", result.filter, host)
+    return
+  end
+
+  result.date, result.host = date, host
+
+  return result
+end
+
+local capture_result = function(captures, result, cidr, rule_id, ...)
+  if not rule_id then return end
+
+  local capture = captures[rule_id]
+  result = result[rule_id]
+
+  for i = 1, #capture do
+    local name = capture[i]
+    result[name] = select(i, ...)
+  end
+
+  if not result.date then result.date = os.date("%Y-%m-%d %H:%M:%S") end
+
+  if result.host and iputil.find_cidr(result.host, cidr) then
+    log.debug("[%s] match `%s` but excluded by cidr", result.filter, result.host)
+    return
+  end
+
+  return result
+end
+
+-- Build `match` function wich returns either table with captures or nil.
+-- `match` function may return same table with different content
+-- required and not redefined filds is `date` and `filter`
+-- `filter` field can not be captured and set based on fileter name only.
 local function build_rex_filter(filter)
   local engine = ENGINES.default
 
@@ -115,19 +155,20 @@ local function build_rex_filter(filter)
     if type(filter.engine) == 'string' then
       engine = assert(ENGINES[filter.engine], "Unknown engine: " .. filter.engine)
     elseif type(filter.engine) == 'function' then
-      search_fn = filter.engine
+      engine = filter.engine
     end
   end
 
-  search_fn = search_fn or assert(engine(filter), "Internal error while build filter: " .. filter.name .. " engine: " .. (filter.engine or 'default') )
+  -- build function wich do capture data from log string
+  search_fn = assert(engine and engine(filter), "Internal error while build filter: " .. filter.name .. " engine: " .. tostring(filter.engine or 'default') )
+
+  -- build index to exclude IP
   local exclude_cidr = iputil.load_cidrs(filter.exclude or {})
 
-  local result
+  -- check if we use named captures
+  local captures
   if filter.capture then
-    local captures = filter.capture
-
-    -- reuse same table for all matches
-    local result_storage = {}
+    captures = filter.capture
 
     if type(captures[1]) ~= 'table' then
       captures = {captures}
@@ -137,38 +178,19 @@ local function build_rex_filter(filter)
 
     for i = 1, #captures do assert(failregex[i], '[' .. filter.name .. ']' .. 'No regex for capture #' .. i) end
     for i = 1, #failregex do assert(captures[i], '[' .. filter.name .. ']' .. 'No capture for regex #' .. i) end
-
-    result = function(rid, ...)
-      if not rid then return end
-      local capture, result = captures[rid], result_storage
-      for i = 1, #capture do
-        local name = capture[i]
-        result[name] = select(i, ...)
-      end
-
-      if not result.date then result.date = os.date("%Y-%m-%d %H:%M:%S") end
-
-      if result.host and iputil.find_cidr(result.host, exclude_cidr) then
-        log.debug("[%s] match `%s` but excluded by cidr", filter.name, result.host)
-        return
-      end
-
-      return result
-    end
-  else
-    result = function(rid, dt, ip)
-      if not rid then return end
-      if not ip then ip, dt = dt, os.date("%Y-%m-%d %H:%M:%S") end
-      if iputil.find_cidr(ip, exclude_cidr) then
-        log.debug("[%s] match `%s` but excluded by cidr", filter.name, ip)
-        return
-      end
-      return dt, ip
-    end
   end
 
+  local result, tmp
+  if captures then
+    result, tmp = capture_result, {}
+    for i = 1, #captures do tmp[#tmp + 1] = {filter = filter.name} end
+  else
+    result, tmp = defaul_result, {filter = filter.name}
+  end
+
+
   return function(t)
-    return result(search_fn(t))
+    return result(captures, tmp, exclude_cidr, search_fn(t))
   end
 end
 

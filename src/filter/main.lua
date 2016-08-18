@@ -77,32 +77,24 @@ log.info("Service start")
 
 log.debug("config.LOG.multithread: %s", tostring(config.LOG.multithread))
 
-local tmp = {}
-
-local function jail(filter, date_or_capture, ip)
-  local msg, err
-
-  if ip then -- we do not use named capture
-    tmp.name, tmp.date, tmp.host = filter.name, date_or_capture, ip
-    msg, err = cjson.encode(tmp)
-  else -- we use named capture so `date_or_capture` have to be a table
-    date_or_capture.name = filter.name
-    msg, err = cjson.encode(date_or_capture)
-  end
+local function jail(filter, capture)
+  local msg, err = cjson.encode(capture)
 
   if not msg then
     log.alert("Can not encode msg: %s", tostring(err))
     return
   end
+
   log.trace(msg)
+
   pub:send(msg)
 end
 
 local function apply_filter(filters, filter, ...)
   for i = 1, #filters do
-    local date, ip = filter(filters[i], ...)
-    if date then
-      jail(filters[i], date, ip)
+    local capture = filter(filters[i], ...)
+    if capture then
+      jail(filters[i], capture)
       if filters[i].stop then
         break
       end
