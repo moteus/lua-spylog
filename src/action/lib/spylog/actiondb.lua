@@ -153,7 +153,7 @@ function ActionDB:add(action)
     self:_add_command(unique, action, 'ban', action_cmd, action_args, options)
   end
 
-  if action.bantime and command.unban then
+  if action.bantime and (action.bantime >= 0) and command.unban then
     local unique  = command.unban.unique  or command.unique
     local options = command.unban.options or command.options
     action.uuid = uuid.new()
