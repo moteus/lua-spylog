@@ -28,7 +28,7 @@ local actions = ActionDB.new(
   path.join(db_path, "action.db")
 )
 
-local action_timer
+local ACTION_POLL, action_timer = 10000
 
 local sub, err = zthreads.context():socket("SUB",{
   [config.CONNECTIONS.ACTION.JAIL.type] = config.CONNECTIONS.ACTION.JAIL.address;
@@ -73,7 +73,7 @@ end
 local function next_action()
   local action = actions:next()
   if not action then
-    return action_timer:again()
+    return action_timer:again(ACTION_POLL)
   end
 
   do_action(action, next_action)
@@ -130,9 +130,12 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
     actions:add(task)
   end
 
+  if action_timer:active() then
+    action_timer:again(1)
+  end
 end)
 
-action_timer = uv.timer():start(0, 10000, function()
+action_timer = uv.timer():start(0, ACTION_POLL, function()
   action_timer:stop()
   next_action()
 end)
