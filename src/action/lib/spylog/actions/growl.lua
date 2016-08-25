@@ -26,10 +26,11 @@ local function decode_growl_address(url)
   if not address then address, auth = auth end
   local port
   address, port = ut.split_first(address, ':', true)
+  port = port and tonumber(port)
   if not port then port = '23053' end
   local pass, hash, enc
   if auth then pass, hash, enc = ut.usplit(auth, ':', true) end
-  return address, port, pass, hash, enc
+  return address, tostring(port), pass, hash, enc
 end
 
 local function is_growl_ok(msg)
