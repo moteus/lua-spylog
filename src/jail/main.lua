@@ -110,15 +110,6 @@ local function action(jail, filter, value)
     end
   end
 
-  require "pp" {
-    filter     = filter.filter;
-    jail       = filter.jail;
-    bantime    = filter.bantime;
-    host       = filter.host;
-    date       = filter.date;
-    action     = actions;
-  }
-
   local msg = cjson.encode{
     filter     = filter.filter;
     jail       = filter.jail;
