@@ -123,8 +123,7 @@ function RpnBaseCounter:__init(interval, resolution)
     resolution = div(interval, self._N)
   end -- too many subcounters
 
-  self._interval = self._N * resolution
-  self._double_interval = 2 * self._interval
+  self._2N = 2 * self._N
 
   if resolution == 1 then
     if self._internal then
@@ -165,11 +164,11 @@ function RpnBaseCounter:_refresh(now)
 
   local elapsed = now - self._last_time
 
-  if elapsed > self._double_interval then
+  if elapsed > self._2N then
     for i = 0, N - 1 do self._values[i] = 0 end
     self._last_time = now
     self._total = 0
-  elseif elapsed >= self._interval then
+  elseif elapsed >= self._N then
     local last_valid_time = now - N + 1
     local last_count_time = self._last_time
 
