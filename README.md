@@ -48,6 +48,81 @@ JAIL{"voip-auth-fail";
 }
 ```
 
+### Supported sources
+ * Text log file
+ * SysLog UDP server (rfc3164 and rfc5424)
+ * SNMP trap UDP server (allows handle Windows event logs)
+ * FreeSWITCH ESL TCP connection
+ * TCP raw connection
+
+### Filters
+
+#### Named cptures
+By default filter names first capure as `date` and second one as `host`.
+If there only one capture then `date` set as current timestamp and capture names as `host`.
+It is possible to assign names to captures using `capture` array.
+```Lua
+FILTER{'nginx-404',
+  capture = {'host', 'date'}; -- we have to swap `date` and `host`
+  failregex = '^([0-9.]+) %- %- %[(.-)%].-GET.-HTTP.- 404';
+}
+```
+Also it possible add any other captures. They will be send to jails as whell.
+
+#### Ignore regex
+Filters support `ignoreregex` field to exclude records which already matched by `failregex`
+
+#### Exclude IP
+Filters support `exclude` array which allows exclude some IP and networks.
+
+### Jails
+Each jail is just array of counters with some expire time.
+
+#### Jail control value
+Each jail support counter for some value. By default it is `host`.
+But in some case it may be need support counter for some other value.
+E.g. in voip system it may be need monitor each account. To specify
+this value uses `banwhat` field. (`banwhat = 'user'`)
+
+#### Counter types
+Currently supports this counter types
+
+ * `incremental` increment to one for each filter message
+ * `accumulate` get increment value from filter message.
+   Can be used e.g. to calculate total calls duration in some VOIP system.
+ * `fixed` just return value from filter.
+
+By default `increment` type uses.
+
+```Lua
+JAIL{
+  ...
+  counter  = {
+    type  = 'accumulate';
+    value = 'duration'; -- what value use to increment.
+  };
+}
+```
+
+#### Counter filter
+It is also possible add some additional filter to counter.
+Currently supports only `prefix` type. It uses `number` value
+to do filtering.
+
+```Lua
+JAIL{
+  ...
+  counter  = {
+    ...
+    prefix = {
+      '53',  -- Cuba 
+      '355', -- Albania
+    }
+  }
+}
+```
+
+
 ## Dependencies
  - [bit32](https://luarocks.org/modules/siffiejoe/bit32)
  - [date](https://luarocks.org/modules/tieske/date)
