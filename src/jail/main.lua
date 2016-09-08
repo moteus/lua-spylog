@@ -130,6 +130,18 @@ log.notice("Connected to filters")
 
 local JAIL do
 
+local function append_jail(jails, filter_name, jail)
+  local t = jails[filter_name]
+
+  if not t then
+    t = {} 
+    jails[filter_name] = t
+  end
+  t[#t + 1] = jail
+
+  return jails
+end
+
 local function j(t)
   local jails = {}
   for i = 1, #t do if t[i].enabled or (t[i].enabled == nil) then
@@ -139,10 +151,10 @@ local function j(t)
     jail.name = jail.name or jail[1]
     if type(jail.filter) == 'table' then
       for j = 1, #jail.filter do
-        jails[ jail.filter[j] ] = jail
+        append_jail(jails, jail.filter[j], jail)
       end
     else
-      jails[ jail.filter ] = jail
+      append_jail(jails, jail.filter, jail)
     end
 
     -- apply default values
@@ -221,6 +233,32 @@ local function create_counter(jail)
   return counter
 end
 
+local function check_jail(jail, capture)
+  local banwhat = jail.banwhat or 'host'
+  if not capture[banwhat] then
+    log.error('filter `%s` does not provide `%s` capture', capture.filter, banwhat)
+    return
+  end
+
+  local counter = jail_counters[capture.filter]
+  if not counter then
+    counter = create_counter(jail)
+    jail_counters[capture.filter] = counter
+  end
+
+  local value = counter:inc(capture)
+
+  if value then
+    if value >= jail.maxretry then
+      counter:reset(capture)
+      log.warning("[%s] %s - %d", jail.name, capture[banwhat], value)
+      action(jail, capture, value) --! @note `action` may add some fields to `capture`
+    else
+      log.trace("[%s] %s - %d", jail.name, capture[banwhat], value)
+    end
+  end
+end
+
 uv.poll_zmq(sub):start(function(handle, err, pipe)
   if err then
     log.fatal("poll: ", err)
@@ -244,34 +282,12 @@ uv.poll_zmq(sub):start(function(handle, err, pipe)
     return
   end
 
-  local jail = JAIL[capture.filter]
-  if not jail then
+  local jails = JAIL[capture.filter]
+  if not jails then
     log.warning("unknown jail for filter `%s`", capture.filter)
-  else
-    local banwhat = jail.banwhat or 'host'
-    if not capture[banwhat] then
-      log.error('filter `%s` does not provide `%s` capture', capture.filter, banwhat)
-      return
-    end
-
-    local counter = jail_counters[capture.filter]
-    if not counter then
-      counter = create_counter(jail)
-      jail_counters[capture.filter] = counter
-    end
-
-    local value = counter:inc(capture)
-
-    if value then
-      if value >= jail.maxretry then
-        counter:reset(capture)
-        log.warning("[%s] %s - %d", jail.name, capture[banwhat], value)
-        action(jail, capture, value) --! @note `action` may add some fields to `capture`
-      else
-        log.trace("[%s] %s - %d", jail.name, capture[banwhat], value)
-      end
-    end
-  end
+  else for i = 1, #jails do
+    check_jail(jails[i], capture)
+  end end
 end)
 
 if config.JAIL and config.JAIL.purge_interval then
@@ -300,9 +316,11 @@ end
 
 exit.start_monitor(...)
 
-for filter, jail in pairs(JAIL) do
+for filter, jails in pairs(JAIL) do
   if type(filter) ~= 'number' then
-    log.info("Attach filter `%s` to jail `%s`", filter, jail.name)
+    for i = 1, #jails do
+      log.info("Attach filter `%s` to jail `%s`", filter, jails[i].name)
+    end
   end
 end
 
