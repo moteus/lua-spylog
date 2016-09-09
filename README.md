@@ -128,7 +128,7 @@ JAIL{
     };
 
     {'acl',            -- filter type
-      type  = 'deny',  -- count if match
+      type  = 'deny',  -- count if not match
       value = 'host',  -- capture name to filter
       cidr = {
         '192.168.123.22',
