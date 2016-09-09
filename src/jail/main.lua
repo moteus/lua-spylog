@@ -234,10 +234,10 @@ local function check_jail(jail, capture)
     end
   end end
 
-  local counter = jail_counters[capture.filter]
+  local counter = jail_counters[jail.name]
   if not counter then
     counter = create_counter(jail)
-    jail_counters[capture.filter] = counter
+    jail_counters[jail.name] = counter
   end
 
   local value = counter:inc(capture)
