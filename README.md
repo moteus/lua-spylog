@@ -1,4 +1,4 @@
-# Execute actions based on log recods
+# Execute actions based on log records
 
 The main goal of this project is provide [fail2ban](http://www.fail2ban.org) functionality to Windows.
 
@@ -150,3 +150,6 @@ JAIL{
 
 ### To support `esl` source type
  - [lluv-esl](https://luarocks.org/modules/moteus/lluv-esl)
+
+### To support `prefix` filter for jails
+ - [prefix_tree](https://luarocks.org/modules/moteus/prefix_tree)
