@@ -104,20 +104,36 @@ JAIL{
 }
 ```
 
-#### Counter filter
-It is also possible add some additional filter to counter.
-Currently supports only `prefix` type. It uses `number` value
-to do filtering.
+#### Jail pre filters
+It is also possible add some additional filter to jails.
+E.g. we want count only attempt to call to some area codes.
+We can not do this on filter side because we can handle same
+log line with different jails. Each pre filter should have
+name as first element. Currently support `prefix` and `acl`.
+Prefix filter should hanve `prefix` field with array of prefixes
+of file name. Acl filter should have `cidr` field with array of
+ip and cidr.
 
 ```Lua
 JAIL{
-  ...
-  counter  = {
-    ...
-    prefix = {
-      '53',  -- Cuba 
-      '355', -- Albania
-    }
+  -- count only calls to Cuba and Albania and exclude '192.168.123.22' host
+  prefilter = {
+    {'prefix',          -- filter type
+      type  = 'allow',  -- count if match
+      value = 'number', -- capture name to filter
+      prefix = {
+        '53',  -- Cuba 
+        '355', -- Albania
+      }
+    };
+
+    {'acl',            -- filter type
+      type  = 'deny',  -- count if match
+      value = 'host',  -- capture name to filter
+      cidr = {
+        '192.168.123.22',
+      }
+    };
   }
 }
 ```

@@ -397,42 +397,6 @@ end
 end
 -------------------------------------------------------------------------------
 
--------------------------------------------------------------------------------
-local JailPrefixCounter = {} do
-JailPrefixCounter.__index = JailPrefixCounter
-
-function JailPrefixCounter:new(jail)
-  local o    = setmetatable({}, self)
-  o._tree    = jail.counter.prefix
-  o._counter = JailCounter:new(jail)
-
-  return o
-end
-
-function JailPrefixCounter:inc(filter)
-  if filter.number and self._tree:find(filter.number) then
-    return self._counter:inc(filter)
-  end
-end
-
-function JailPrefixCounter:reset(filter)
-  if filter.number and self._tree:find(filter.number) then
-    return self._counter:reset(filter)
-  end
-end
-
-function JailPrefixCounter:purge(now)
-  return self._counter:purge(now)
-end
-
-function JailPrefixCounter:count()
-  return self._counter:count()
-end
-
-end
--------------------------------------------------------------------------------
-
 return {
   jail   = JailCounter;
-  prefix = JailPrefixCounter;
 }

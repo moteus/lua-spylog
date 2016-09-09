@@ -81,6 +81,7 @@ local SERVICE = require "lib/SERVICE"
 load_configs(SERVICE.CONFIG_DIR)
 
 return {
+  CONFIG_DIR  = SERVICE.CONFIG_DIR;
   FILTERS     = FILTERS;
   JAILS       = JAILS;
   ACTIONS     = ACTIONS;

@@ -15,8 +15,6 @@ local stp      = require "StackTracePlus"
 local exit     = require "spylog.exit"
 local var      = require "spylog.var"
 local path     = require "path"
-local ok, ptree = pcall(require, "prefix_tree")
-if not ok then ptree = nil end
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
 
@@ -142,6 +140,29 @@ local function append_jail(jails, filter_name, jail)
   return jails
 end
 
+local function build_filter(jail)
+  local filters = {}
+  if type(jail.prefilter[1]) ~= 'table' then
+    jail.prefilter = {jail.prefilter}
+  end
+
+  for i = 1, #jail.prefilter do
+    local filter = jail.prefilter[i]
+
+    assert(filter[1], string.format('no name for pre filter #%d in jail `%s`', i, jail.name))
+
+    local Filter = require ("spylog.prefilter." .. filter[1])
+
+    filters[#filters + 1] = assert(Filter.new(filter))
+
+    log.info('[%s] add prefilter `%s`', jail.name, filters[#filters]:name())
+  end
+
+  jail.prefilter = filters
+
+  return true
+end
+
 local function j(t)
   local jails = {}
   for i = 1, #t do if t[i].enabled or (t[i].enabled == nil) then
@@ -164,38 +185,9 @@ local function j(t)
       end
     end
 
-    -- load prefixes
-    if jail.counter and jail.counter.prefix then
-      if not ptree then
-        return nil, 'Prefix counter not avaliable'
-      end
-
-      local prefixes, tree = jail.counter.prefix
-
-      if type(prefixes) == 'table' then
-        tree = ptree.new()
-        if prefixes[1] then
-          for _, prefix in ipairs(prefixes) do
-            tree:add(prefix, '')
-          end
-        else
-          for prefix, value in pairs(prefixes) do
-            tree:add(prefix, value)
-          end
-        end
-      else
-        local base_prefix_dir = path.join(SERVICE.CONFIG_DIR, 'config', 'jails')
-        local full_path = path.fullpath(path.isfullpath(prefixes) or path.join(base_prefix_dir, prefixes))
-        log.debug('[%s] full path for prefix: %s', jail.name, full_path)
-        if not path.isfile(full_path) then
-          return nil, string.format('[%s] can not find prefix file %s', jail.name, full_path)
-        end
-        local ok
-        ok, tree = pcall(ptree.LoadPrefixFromFile, full_path)
-        if not ok then return nil, tree end
-      end
-
-      jail.counter.prefix = tree
+    if jail.prefilter then
+      local ok, err = pcall(build_filter, jail)
+      if not ok then return nil, err end
     end
 
   end end
@@ -222,14 +214,8 @@ local jail_counters = {}
 local function create_counter(jail)
   local counter
 
-  if jail.counter and jail.counter.prefix then
-    counter = Counter.prefix:new( jail )
-  end
 
-  if not counter then
-    counter = Counter.jail:new( jail )
-  end
-
+  counter = Counter.jail:new( jail )
   return counter
 end
 
@@ -239,6 +225,14 @@ local function check_jail(jail, capture)
     log.error('filter `%s` does not provide `%s` capture', capture.filter, banwhat)
     return
   end
+
+  if jail.prefilter then for i = 1, #jail.prefilter do
+    local filter = jail.prefilter[i]
+    if not filter:apply(capture) then
+      log.debug("[%s] message from %s excluded by pre filter %s", jail.name, capture.filter, filter:name())
+      return
+    end
+  end end
 
   local counter = jail_counters[capture.filter]
   if not counter then
