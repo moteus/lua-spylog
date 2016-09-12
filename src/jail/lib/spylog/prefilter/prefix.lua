@@ -42,7 +42,7 @@ function PrefixFilter:__init(filter)
   return self
 end
 
-function PrefixFilter:apply(capture) do
+function PrefixFilter:apply(capture)
   local value = self:value(capture)
 
   if value and self._tree:find(value) then
@@ -50,8 +50,6 @@ function PrefixFilter:apply(capture) do
   end
 
   return not self._allow
-end
-
 end
 
 end

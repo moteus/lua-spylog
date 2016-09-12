@@ -16,7 +16,7 @@ function AclFilter:__init(filter)
   return self
 end
 
-function AclFilter:apply(capture) do
+function AclFilter:apply(capture)
   local value = self:value(capture)
 
   if value and iputil.find_cidr(value, self._cidr) then
@@ -24,8 +24,6 @@ function AclFilter:apply(capture) do
   end
 
   return not self._allow
-end
-
 end
 
 end
