@@ -134,4 +134,29 @@ local function pipe(commands, timeout, cb)
   end
 end
 
+local function chain_(i, commands, timeout, cb)
+  local command = commands[i]
+  if not command then return uv.defer(cb, 0, 'done') end
+
+  spawn(command[1], command[2], timeout, function(typ, err, status, signal)
+    if typ == 'exit' then
+      uv.defer(cb, 'exit', err, status, signal)
+
+      if not err then
+        if command.ignore_status or status == 0 then
+          return uv.defer(chain_, i + 1, commands, timeout, cb)
+        end
+      end
+
+      return cb(0, 'done')
+    end
+
+    cb(i, typ, err, status, signal)
+  end)
+end
+
+local function chain(commands, timeout, cb)
+  return chain_(1, commands, timeout, cb)
+end
+
 return spawn
