@@ -19,7 +19,7 @@ return function(action, cb)
   spawn(cmd, args, action.options.timeout, function(typ, err, status, signal)
     if typ == 'exit' then
       if (not err) and (status ~= 0) then
-        err = ("status: %q"):format(status)
+        err = ("status: %d"):format(status)
       end
       return uv.defer(cb, action, status == 0, err)
     end
