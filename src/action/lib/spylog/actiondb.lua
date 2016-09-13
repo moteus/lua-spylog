@@ -31,8 +31,6 @@ function ActionDB:init()
       "action_jail not null," ..
       "action_type not null," ..
       "action_host not null," ..
-      "action_cmd  not null," ..
-      "action_args not null," ..
       "action_opts not null," ..
       "action_full not null," ..
       "action_uniq     null," ..
@@ -66,13 +64,15 @@ function ActionDB:_find_command(action_type, unique)
   return row
 end
 
-function ActionDB:_add_command(unique, action, action_type, action_cmd, action_args, options)
+function ActionDB:_add_command(unique, action, action_type, options)
   local active_action
 
   local context, action_name = action, action.action
   if action.parameters then
     context = var.combine{action, action.parameters}
   end
+
+  local log_prefix = string.format("[%s][%s][%s]", action.jail, action.action, action_type)
 
   if unique then -- control duplicate
     unique = Args.apply_tags(unique, context)
@@ -83,12 +83,12 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
     -- we already have one action in queue so we need only move it on early stage
     local flag = (date(active_action.action_time) > date(action.date))
 
-    log.debug("%s > %s == %s (%s)", active_action.action_time, action.date, flag and 'true' or 'false', action_type)
+    log.debug("%s %s > %s == %s (%s)", log_prefix, active_action.action_time, action.date, flag and 'true' or 'false', action_type)
 
     if action_type == 'unban' then flag = not flag end
 
     if flag then
-      log.info("Reset time for active action from %s to %s", active_action.action_time, action.date)
+      log.info("%s reset time for active action from %s to %s", log_prefix, active_action.action_time, action.date)
       local stmt = assert(self._db:prepare("update actions set action_time=? where action_uuid=?;"))
       assert(stmt:bind(
         action.date,
@@ -97,7 +97,7 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
       assert(stmt:exec())
       stmt:close()
     else
-      log.info("Reuse active action at %s", active_action.action_time)
+      log.info("%s reuse active action at %s", log_prefix, active_action.action_time)
     end
 
     return
@@ -108,8 +108,8 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
   -- not prepared command so we create new one
   local stmt = assert(self._db:prepare(
     "INSERT INTO actions(action_uuid,action_time,action_name,action_jail,action_type,"..
-    "action_host,action_cmd,action_args,action_opts,action_full,action_uniq)"..
-    "VALUES (?,?,?,?,?,?,?,?,?,?,?)"
+    "action_host,action_opts,action_full,action_uniq)"..
+    "VALUES (?,?,?,?,?,?,?,?,?)"
   ))
 
   assert(stmt:bind(
@@ -119,14 +119,12 @@ function ActionDB:_add_command(unique, action, action_type, action_cmd, action_a
     action.jail,
     action_type,
     action.host,
-    action_cmd,
-    action_args,
     json.encode(options or {}),
     json.encode(action),
     unique
   ))
 
-  log.info("[%s] PREPARE COMMAND: [%s] %s %s", action.jail, action.date, action_cmd, action_args)
+  log.info("%s schedule action at %s", log_prefix, action.date)
 
   assert(stmt:exec())
   stmt:close()
@@ -138,7 +136,7 @@ function ActionDB:add(action)
   local command = config.ACTIONS[action_name]
 
   if not command then
-    log.alert('unknown action %s', action_name)
+    log.alert('[%s] unknown action %s', action.jail, action_name)
     return
   end
 
@@ -147,10 +145,9 @@ function ActionDB:add(action)
     local options = command.ban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):fmt("%F %T")
-    action_cmd  = command.ban[1]
-    action_args = command.ban[2]
+    action.cmd  = command.ban
 
-    self:_add_command(unique, action, 'ban', action_cmd, action_args, options)
+    self:_add_command(unique, action, 'ban', options)
   end
 
   if action.bantime and (action.bantime >= 0) and command.unban then
@@ -158,10 +155,9 @@ function ActionDB:add(action)
     local options = command.unban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):addseconds(action.bantime):fmt("%F %T")
-    action_cmd  = command.unban[1]
-    action_args = command.unban[2]
+    action.cmd  = command.unban
 
-    self:_add_command(unique, action, 'unban', action_cmd, action_args, options)
+    self:_add_command(unique, action, 'unban', options)
   end
 
   return
@@ -170,7 +166,7 @@ end
 function ActionDB:next()
   local stmt = assert(self._db:prepare(
     "select action_uuid as uuid, action_time as date, action_name as action, action_jail as jail, " ..
-    "action_type as type, action_host as host, action_cmd as cmd, action_args as args, " .. 
+    "action_type as type, action_host as host, " .. 
     "action_opts as options, action_full as action " ..
     "from actions "..
     "where action_time<=? " .. 

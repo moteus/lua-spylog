@@ -41,31 +41,34 @@ if not sub then
   return SERVICE.exit()
 end
 
-local function do_action(action, cb)
-  local cmd  = action.cmd
+local function do_action(task, cb)
+  local action  = task.action
+  local cmd     = action.cmd[1]
 
-  log.warning("[%s] EXECUTE COMMAND: [%s] %s %s", action.jail, action.date, action.cmd, action.args)
+  local log_prefix = string.format("[%s][%s][%s]", action.jail, action.action, task.type)
+
+  log.info("%s start action", log_prefix, action.date)
 
   local exicuter
   if cmd:sub(1, 1) == '@' then
     exicuter = EXICUTERS[cmd]
     if not exicuter then
-      log.alert("Action module not loaded `%s` - %s", action.action.action, cmd:sub(2))
-      actions:remove(action)
+      log.alert("%s action module not loaded", log_prefix)
+      actions:remove(task)
       return uv.defer(cb)
     end
   else
     exicuter = spawn
   end
 
-  exicuter(action, function(action, ok, err)
-    actions:remove(action)
+  exicuter(task, function(task, ok, err)
+    actions:remove(task)
     uv.defer(cb)
 
     if not ok then
-      log.error('[%s] EXECUTE COMMAND error: %s', action.jail, tostring(err or 'unknown'))
+      log.error('%s execute action error: %s', log_prefix, tostring(err or 'unknown'))
     else
-      log.info('[%s] EXECUTE COMMAND success', action.jail)
+      log.info('%s execute action success', log_prefix)
     end
   end)
 end
@@ -150,6 +153,11 @@ local function init_service()
       assert(ok, ("Can not load action module `%s`: %s"):format(cmd:sub(2), tostring(executer)))
       EXICUTERS[cmd] = executer
     end
+  end
+
+  for name, cmd in pairs(config.ACTIONS) do
+    if type(cmd.ban  ) == 'string' then cmd.ban   = {cmd.ban  } end
+    if type(cmd.unban) == 'string' then cmd.unban = {cmd.unban} end
   end
 
   for name, cmd in pairs(config.ACTIONS) do

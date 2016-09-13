@@ -69,7 +69,19 @@ local function ApplyTags(str, tags)
   end))
 end
 
+local function BuildArgs(args)
+  local s
+  for _, a in ipairs(args) do
+    if s then s = s .. ' ' else s = '' end
+    a = (a):gsub('"', '""')
+    if a:find("%s") then a = '"' .. a .. '"' end
+    s = s .. a
+  end
+  return s
+end
+
 return {
+  build         = BuildArgs;
   split         = SplitArgs;
   split_command = SplitCommand;
   escape_tag    = EscapeTag;

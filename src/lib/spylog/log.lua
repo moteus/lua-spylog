@@ -29,7 +29,9 @@ end
 local log = require "log".new(
   config.LOG.level or "info",
   require "log.writer.prefix".new(config.LOG.prefix or "", writer),
-  require "log.formatter.mix".new()
+  require "log.formatter.mix".new(
+    require "log.formatter.pformat".new()
+  )
 )
 
 return log

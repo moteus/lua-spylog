@@ -1,4 +1,5 @@
 local log   = require "spylog.log"
+local var   = require "spylog.var"
 local Args  = require "spylog.args"
 local uv    = require "lluv"
 local ut    = require "lluv.utils"
@@ -44,22 +45,28 @@ local function is_growl_ok(msg)
   return true
 end
 
-return function(action, cb)
-  local options    = action.options
-  local parameters = action.action.parameters
-  local log_header = '[growl][' .. action.uuid .. ']'
+return function(task, cb)
+  local action, options = task.action, task.options
+  local context, command = action, action.cmd
+  local parameters = action.parameters or command.parameters
+
+  if action.parameters then context = var.combine{action, action.parameters, command.parameters}
+  elseif command.parameters then context = var.combine{action, command.parameters} end
+
+  local log_header = string.format("[%s][%s][%s]", action.jail, action.action, task.type)
 
   log.debug('%s execute start', log_header)
 
-  local args, tail = Args.split(action.args)
+  local command_args = Args.apply_tags(command[2], context)
+  local args, tail = Args.split(command_args)
 
   if not args then
-    log.error("%s [%s] Can not parse argument string: %q", log_header, action.jail, action.args)
-    return uv.defer(cb, info, nil)
+    log.error("%s Can not parse argument string: %q", log_header, action.jail, command_args)
+    return uv.defer(cb, task, nil, tail)
   end
 
   if tail then
-    log.warning("%s [%s] Unused command arguments: %q", log_header, action.jail, tail)
+    log.warning("%s unused command arguments: %q", log_header, tail)
   end
 
   local subject     = parameters and parameters.fullsubj or args[1]
@@ -67,7 +74,7 @@ return function(action, cb)
   local priority    = parameters and parameters.priority
   local icon        = parameters and parameters.icon
   local sticky      = parameters and parameters.sticky
-  local notify_type = string.upper(action.type)
+  local notify_type = string.upper(task.type)
 
   local count, growl_err
 
@@ -91,9 +98,9 @@ return function(action, cb)
       if count > 0 then return end
 
       if growl_err then
-        uv.defer(cb, action, false, growl_err)
+        uv.defer(cb, task, false, growl_err)
       else
-        uv.defer(cb, action, true)
+        uv.defer(cb, task, true)
       end
 
       log.debug('%s execute done', log_header)
@@ -110,7 +117,7 @@ return function(action, cb)
         count = count - 1
 
         if count == 0 then
-          uv.defer(cb, action, false, err)
+          uv.defer(cb, task, false, err)
           log.debug('%s execute done', log_header)
         else growl_err = err end
 
@@ -154,7 +161,7 @@ return function(action, cb)
         count = count - 1
       end
       if count == 0 then
-        uv.defer(cb, action, false, 'Invalid destinations')
+        uv.defer(cb, task, false, 'Invalid destinations')
       end
     end
     return
@@ -167,7 +174,7 @@ return function(action, cb)
     address, port, password, hash, encrypt = decode_growl_address(dest)
     if (not address) or #address == 0 then
       log.error('%s Invalid growl destination: %s', log_header, dest)
-      return uv.defer(cb, action, false, 'Invalid destinations')
+      return uv.defer(cb, task, false, 'Invalid destinations')
     end
   elseif options then
     address  = options.address

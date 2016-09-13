@@ -140,7 +140,7 @@ local function chain_(i, commands, timeout, cb)
 
   spawn(command[1], command[2], timeout, function(typ, err, status, signal)
     if typ == 'exit' then
-      uv.defer(cb, 'exit', err, status, signal)
+      uv.defer(cb, i, 'exit', err, status, signal)
 
       if not err then
         if command.ignore_status or status == 0 then
@@ -159,4 +159,7 @@ local function chain(commands, timeout, cb)
   return chain_(1, commands, timeout, cb)
 end
 
-return spawn
+return setmetatable({
+  pipe  = pipe;
+  chain = chain;
+},{__call = function(_, ...) return spawn(...) end})

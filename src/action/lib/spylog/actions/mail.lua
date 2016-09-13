@@ -5,6 +5,7 @@ local ssl       = require "lluv.ssl"
 local sendmail_ = require "sendmail"
 local Args      = require "spylog.args"
 local log       = require "spylog.log"
+local var       = require "spylog.var"
 
 local SSL_CONTEXT = {}
 
@@ -20,19 +21,26 @@ local function CTX(opt)
   return ctx
 end
 
-return function(action, cb)
-  local options = action.options
-  local parameters = action.action.parameters
+return function(task, cb)
+  local action, options = task.action, task.options
+  local context, command = action, action.cmd
+  local parameters = action.parameters or command.parameters
 
-  local args, tail = Args.split(action.args)
+  if action.parameters then context = var.combine{action, action.parameters, command.parameters}
+  elseif command.parameters then context = var.combine{action, command.parameters} end
+
+  local log_header = string.format("[%s][%s][%s]", action.jail, action.action, task.type)
+
+  local command_args = Args.apply_tags(command[2], context)
+  local args, tail = Args.split(command_args)
 
   if not args then
-    log.error("[%s] Can not parse argument string: %q", action.jail, action.args)
-    return uv.defer(cb, info, nil)
+    log.error("%s Can not parse argument string: %q", log_header, action.jail, command_args)
+    return uv.defer(cb, task, nil, tail)
   end
 
   if tail then
-    log.warning("[%s] Unused command arguments: %q", action.jail, tail)
+    log.warning("%s unused command arguments: %q", log_header, tail)
   end
 
   local subject = parameters and parameters.fullsubj or args[1]
@@ -65,6 +73,6 @@ return function(action, cb)
       }
     }
 
-    uv.defer(cb, action, ok, err)
+    uv.defer(cb, task, ok, err)
   end)
 end
