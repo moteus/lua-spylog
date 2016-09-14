@@ -47,7 +47,7 @@ end
 
 return function(task, cb)
   local action, options = task.action, task.options
-  local context, command = action, action.cmd
+  local context, command = action, action.cmd[2]
   local parameters = action.parameters or command.parameters
 
   if action.parameters then context = var.combine{action, action.parameters, command.parameters}
@@ -57,11 +57,10 @@ return function(task, cb)
 
   log.debug('%s execute start', log_header)
 
-  local command_args = Args.apply_tags(command[2], context)
-  local args, tail = Args.split(command_args)
+  local args, tail = Args.decode(command, context)
 
   if not args then
-    log.error("%s Can not parse argument string: %q", log_header, action.jail, command_args)
+    log.error("%s Can not parse argument string: %q", log_header, tail)
     return uv.defer(cb, task, nil, tail)
   end
 

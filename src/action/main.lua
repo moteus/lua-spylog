@@ -14,7 +14,6 @@ local cjson    = require "cjson.safe"
 local stp      = require "StackTracePlus"
 local ActionDB = require "spylog.actiondb"
 local spawn    = require "spylog.actions.spawn"
-local Args     = require "spylog.args"
 local exit     = require "spylog.exit"
 
 log.debug("config.LOG.multithread: %s", tostring(config.LOG.multithread))

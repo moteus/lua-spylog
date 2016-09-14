@@ -14,18 +14,10 @@ return function(task, cb)
 
   local log_header = string.format("[%s][%s][%s]", action.jail, action.action, task.type)
 
-  local cmd, command_args
-  if command[2] then
-    cmd          = command[1]
-    command_args = Args.apply_tags(command[2], context)
-  else
-    command_args = Args.apply_tags(command[1], context)
-  end
+  local cmd, args, tail = Args.decode_command(command, context)
 
-  local args, tail = Args.split(command_args)
-
-  if not args then
-    log.error("%s Can not parse argument string: %q", log_header, command_args)
+  if not cmd then
+    log.error("%s Can not parse argument string: %s", log_header, args)
     return uv.defer(cb, task, false, args)
   end
 
@@ -33,7 +25,7 @@ return function(task, cb)
     log.warning("%s Unused command arguments: %q", log_header, tail)
   end
 
-  if (not cmd) or (string.sub(cmd, 1, 1) == '@') then
+  if string.sub(cmd, 1, 1) == '@' then
     cmd = table.remove(args, 1)
   end
 

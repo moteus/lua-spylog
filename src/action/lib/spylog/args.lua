@@ -62,10 +62,11 @@ local function EscapeTag(str)
   return (string.gsub(str,'"', '""'))
 end
 
-local function ApplyTags(str, tags)
-  return (str:gsub('%b<>', function(tag)
-    tag = tag:sub(2,-2)
-    return EscapeTag(tags[tag] or tags[tag:lower()] or '')
+local function ApplyTags(str, tags, escape)
+  return (string.gsub(str, '%b<>', function(tag)
+    tag = string.sub(tag, 2, -2)
+    tag = tags[tag] or tags[string.lower(tag)] or ''
+    return escape and EscapeTag(tag) or tag
   end))
 end
 
@@ -80,10 +81,61 @@ local function BuildArgs(args)
   return s
 end
 
+local function DecodeArgs(arguments, tags)
+  local args, tail, err
+
+  if type(arguments) == 'string' then
+    args, tail = SplitArgs(arguments)
+    if not args then return nil, tail end
+  else
+    args = arguments
+  end
+
+  for i = 1, #args do
+    args[i] = ApplyTags(args[i], tags, false)
+  end
+
+  return args, tail
+end
+
+local function DecodeCommand(command, tags)
+  local cmd, args, tail, err
+
+  if type(command) == 'string' then
+    cmd, args, tail = SplitCommand(command)
+    if not cmd then err = args end
+  elseif command[2] then
+    cmd = command[1]
+    if not cmd then
+      err = 'first element have to be a commad'
+    else
+      if type(command[2]) == 'string' then
+        args, tail = SplitArgs(command[2])
+        if not args then err, cmd = tail end
+      else
+        args = command[2]
+      end
+    end
+  elseif command[1] then
+    cmd, args, tail = SplitCommand(command[1])
+    if not cmd then err = args end
+  end
+
+  if not cmd then return nil, err end
+
+  for i = 1, #args do
+    args[i] = ApplyTags(args[i], tags, false)
+  end
+
+  return cmd, args, tail
+end
+
 return {
-  build         = BuildArgs;
-  split         = SplitArgs;
-  split_command = SplitCommand;
-  escape_tag    = EscapeTag;
-  apply_tags    = ApplyTags;
+  build          = BuildArgs;
+  split          = SplitArgs;
+  split_command  = SplitCommand;
+  escape_tag     = EscapeTag;
+  apply_tags     = ApplyTags;
+  decode         = DecodeArgs;
+  decode_command = DecodeCommand;
 }

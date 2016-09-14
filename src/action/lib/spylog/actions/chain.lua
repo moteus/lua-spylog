@@ -6,7 +6,7 @@ local log     = require "spylog.log"
 
 return function(task, cb)
   local action, options = task.action, task.options
-  local context, command = action, action.cmd
+  local context, command = action, action.cmd[2]
   local parameters = action.parameters or command.parameters
 
   if action.parameters then context = var.combine{action, action.parameters, command.parameters}
@@ -14,7 +14,7 @@ return function(task, cb)
 
   local log_header = string.format("[%s][%s][%s]", action.jail, action.action, task.type)
 
-  local commands = command[2]
+  local commands = command
   if type(commands) == 'string' then commands = {commands} end
 
   for i = 1, #commands do
@@ -24,26 +24,16 @@ return function(task, cb)
 
     local command = commands[i]
 
-    local cmd, command_args
-    if command[2] then
-      cmd          = command[1]
-      command_args = Args.apply_tags(command[2], context)
-    else
-      command_args = Args.apply_tags(command[1], context)
-    end
+    local cmd, args, tail = Args.decode_command(command, context)
 
-    local args, tail = Args.split(command_args)
-
-    if not args then
-      log.error("%s Can not parse argument string: %q", log_header, command_args)
+    if not cmd then
+      log.error("%s Can not parse argument string: %s", log_header, args)
       return uv.defer(cb, task, false, args)
     end
 
     if tail then
       log.warning("%s Unused command arguments: %q", log_header, tail)
     end
-
-    if not cmd then cmd = table.remove(args, 1) end
 
     command[1], command[2] = cmd, args
 
