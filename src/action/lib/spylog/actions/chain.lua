@@ -17,6 +17,11 @@ return function(task, cb)
   local commands = command
   if type(commands) == 'string' then commands = {commands} end
 
+  if type(commands) ~= 'table' or #commands == 0 then
+    log.warning('%s no commands to execute', log_header)
+    return uv.defer(cb, task, 0)
+  end
+
   for i = 1, #commands do
     if type(commands[i]) == 'string' then
       commands[i] = {commands[i]}
@@ -43,16 +48,10 @@ return function(task, cb)
   local last_error, last_command
   spawn.chain(commands, options.timeout, function(i, typ, err, status, signal)
     if typ == 'done' then
-      if not last_command then
-        last_error = string.format('nothing to execute')
-      end
       return uv.defer(cb, task, not last_error, last_error)
     end
 
     if typ == 'exit' then
-      if (not err) and (status ~= 0) then
-        err = ("status: %d"):format(status)
-      end
       last_command, last_error, last_status = i, err, status
       log.debug("%s[%d] chain command exit: %s", log_header, i, tostring(err or status))
       return

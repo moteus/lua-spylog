@@ -33,10 +33,12 @@ return function(task, cb)
 
   spawn(cmd, args, options.timeout, function(typ, err, status, signal)
     if typ == 'exit' then
-      if (not err) and (status ~= 0) then
-        err = ("status: %d"):format(status)
+      if not err then
+        if not (command.ignore_status or status == 0) then
+          err = spawn.estatus(status, signal)
+        end
       end
-      return uv.defer(cb, task, status == 0, err)
+      return uv.defer(cb, task, not err, err)
     end
     return log.trace("%s command output: [%s] %s", log_header, typ, tostring(err or status))
   end)
