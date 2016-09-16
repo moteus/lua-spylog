@@ -1,8 +1,9 @@
-local SERVICE     = require "lib/SERVICE"
+                    require "lib/configure"
 local config      = require "spylog.config"
 config.LOG.prefix = "[jail] "
 -------------------------------------------------
 
+local SERVICE   = require "LuaService"
 local log      = require "spylog.log"
 local uv       = require "lluv"
 uv.poll_zmq    = require "lluv.poll_zmq"

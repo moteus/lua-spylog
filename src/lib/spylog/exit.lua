@@ -1,4 +1,4 @@
-local SERVICE = require "lib/SERVICE"
+local SERVICE = require "LuaService"
 local uv      = require "lluv"
 uv.poll_zmq   = require "lluv.poll_zmq"
 local log     = require "spylog.log"

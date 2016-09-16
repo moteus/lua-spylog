@@ -77,11 +77,11 @@ local function load_configs(base)
 
 end
 
-local SERVICE = require "lib/SERVICE"
-load_configs(SERVICE.CONFIG_DIR)
+local libs = require "lib/configure"
+load_configs(libs.CONFIG_DIR)
 
 return {
-  CONFIG_DIR  = SERVICE.CONFIG_DIR;
+  CONFIG_DIR  = libs.CONFIG_DIR;
   FILTERS     = FILTERS;
   JAILS       = JAILS;
   ACTIONS     = ACTIONS;

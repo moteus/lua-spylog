@@ -1,10 +1,11 @@
-local SERVICE      = require "lib/SERVICE"
-local config       = require "spylog.config"
+                    require "lib/configure"
+local config      = require "spylog.config"
 config.LOG.prefix  = "[spylog] "
 config.main_thread = true
 config.LOG.multithread = true
 ---------------------------------------------------
 
+local SERVICE   = require "LuaService"
 local zthreads  = require "lzmq.threads"
 local ztimer    = require "lzmq.timer"
 local uv        = require "lluv"
@@ -14,7 +15,7 @@ local log       = require "spylog.log"
 local exit      = require "spylog.exit"
 
 local init_thread = function(...)
-  local SERVICE = require "lib/SERVICE"
+  require "lib/configure"
   local config  = require "spylog.config"
   config.LOG.multithread = true
   return ...
