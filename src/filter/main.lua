@@ -1,9 +1,8 @@
-                    require "lib/configure"
+local SERVICE     = require "LuaService"
 local config      = require "spylog.config"
 config.LOG.prefix = "[filter] "
 -------------------------------------------------
 
-local SERVICE   = require "LuaService"
 local log       = require "spylog.log"
 local uv        = require "lluv"
 local ut        = require "lluv.utils"

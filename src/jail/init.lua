@@ -5,4 +5,6 @@ return {
   name = "spylog_jail",
   display_name = "SpyLog - Jail",
   script = "main.lua",
+  lua_cpath = '!\\lib\\?.dll;!\\..\\lib\\?.dll;',
+  lua_path = '!\\lib\\?.lua;!\\lib\\?\\init.lua;!\\..\\lib\\?.lua;!\\..\\lib\\?\\init.lua';
 }
