@@ -1,9 +1,8 @@
 local config  = require "spylog.config"
 
 local function build_writer()
-  require "lib/configure"
-  local config  = require "spylog.config"
   local SERVICE = require "LuaService"
+  local config  = require "spylog.config"
   local stdout_writer
 
   if not SERVICE.RUN_AS_SERVICE then

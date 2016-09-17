@@ -14,7 +14,7 @@ local log       = require "spylog.log"
 local exit      = require "spylog.exit"
 
 local init_thread = function(...)
-  require "lib/configure"
+  require "LuaService"
   local config  = require "spylog.config"
   config.LOG.multithread = true
   return ...
