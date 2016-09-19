@@ -1,3 +1,7 @@
+local Service = require "LuaService"
+
+local CONFIG_DIR = string.match(Service.PATH, "^(.-)[\\/][^\\/]+$")
+
 local WHITE_IP = {}
 
 local SOURCES = {}
@@ -77,11 +81,10 @@ local function load_configs(base)
 
 end
 
-local libs = require "lib/configure"
-load_configs(libs.CONFIG_DIR)
+load_configs(CONFIG_DIR)
 
 return {
-  CONFIG_DIR  = libs.CONFIG_DIR;
+  CONFIG_DIR  = CONFIG_DIR;
   FILTERS     = FILTERS;
   JAILS       = JAILS;
   ACTIONS     = ACTIONS;

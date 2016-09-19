@@ -21,9 +21,9 @@ local init_thread = function(...)
 end
 
 local THREADS = {
-  {'filter', '@./filter/main.lua'};
-  {'jail',   '@./jail/main.lua'  };
-  {'action', '@./action/main.lua'};
+  {'filter', '@../filter/main.lua'};
+  {'jail',   '@../jail/main.lua'  };
+  {'action', '@../action/main.lua'};
 }
 
 local threads = {}
