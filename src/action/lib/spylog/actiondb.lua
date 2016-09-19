@@ -140,6 +140,15 @@ function ActionDB:add(action)
     return
   end
 
+  if command.parameters then
+    if not action.parameters then action.parameters = command.parameters
+    else for k, v in pairs(command.parameters) do
+      if action.parameters[k] == nil then
+        action.parameters[k] = v
+      end
+    end end
+  end
+
   if command.ban then
     local unique  = command.ban.unique  or command.unique
     local options = command.ban.options or command.options
