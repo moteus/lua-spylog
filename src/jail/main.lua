@@ -39,6 +39,21 @@ if not pub then
   return SERVICE.exit()
 end
 
+local function apply_vars(jail, dst, src, context)
+  for i, v in pairs(src) do
+    if type(v) == 'table' then
+      dst[i] = apply_vars(jail, {}, v, context)
+    elseif type(v) == 'string' then
+      local unknown
+      dst[i], unknown = var.format(v, context)
+      if unknown then
+        return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
+      end
+    else dst[i] = v end
+  end
+  return dst
+end
+
 local function build_action(jail, action, context)
   if type(action) == 'string' then
     local unknown
@@ -55,13 +70,8 @@ local function build_action(jail, action, context)
   end
 
   if action[2] then
-    context.action, parameters = name, {}
-    for name, value in pairs(action[2]) do
-      parameters[name], unknown = var.format(value, context)
-      if unknown then
-        return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-      end
-    end
+    context.action = name
+    parameters = apply_vars(jail, {}, action[2], context)
   end
 
   return {name, parameters}
@@ -72,18 +82,12 @@ local function action(jail, filter, value)
   filter.jail    = jail.name
   filter.bantime = jail.bantime
   filter.counter = value
+
   -- build jail parameters
   local parameters
   if jail.parameters then
-    parameters = {}
     local context = DEFAULT.parameters and var.combine{filter, DEFAULT.parameters} or filter
-    for i, v in pairs(jail.parameters) do
-      local unknown
-      parameters[i], unknown = var.format(v, context)
-      if unknown then
-        return log.alert("[%s] unknown parameter: %s", jail.name, next(unknown))
-      end
-    end
+    parameters = apply_vars(jail, {}, jail.parameters, context)
   end
 
   local context

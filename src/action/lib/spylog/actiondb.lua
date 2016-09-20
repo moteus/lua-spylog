@@ -130,6 +130,50 @@ function ActionDB:_add_command(unique, action, action_type, options)
   stmt:close()
 end
 
+local function build_action_params(typ, action, command)
+  --
+  -- if parameters has bun or unban specific params then we can not use `action.parameters`
+  -- e.g. we have 
+  -- action.parameters = {
+  --   a = 10;
+  --   unban = {
+  --     a = 20;
+  --   }
+  -- }
+  -- and we build parameters to `ban` action. we do not need pass `unban` parameters to it.
+  -- Also we can use bun/unban params to disable some action e.g. 
+  -- action.parameters = {unban=false} -- just prevent run unban action at all.
+  --
+
+  local parameters
+
+  if action.parameters and (action.parameters.ban or action.parameters.unban) then
+    parameters = (type(action.parameters[typ]) == 'table') and action.parameters[typ] or {}
+
+    for k, v in pairs(action.parameters) do
+      if k ~= 'ban' and k ~= 'unban' and parameters[k] ~= nil then
+        parameters[k] = v
+      end
+    end
+  else
+    parameters = action.parameters
+  end
+
+  if command.parameters then
+    if not parameters then
+      parameters = command.parameters
+    else
+      for k, v in pairs(command.parameters) do
+        if action.parameters[k] == nil then
+          action.parameters[k] = v
+        end
+      end
+    end
+  end
+
+  return parameters
+end
+
 function ActionDB:add(action)
   local action_name = action.action
 
@@ -140,33 +184,37 @@ function ActionDB:add(action)
     return
   end
 
-  if command.parameters then
-    if not action.parameters then action.parameters = command.parameters
-    else for k, v in pairs(command.parameters) do
-      if action.parameters[k] == nil then
-        action.parameters[k] = v
-      end
-    end end
-  end
 
-  if command.ban then
+  if command.ban and not (action.parameters and action.parameters.ban == false) then
+    local parameters = build_action_params('ban', action, command)
+
     local unique  = command.ban.unique  or command.unique
     local options = command.ban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):fmt("%F %T")
     action.cmd  = command.ban
+    action.parameters, parameters = parameters, action.parameters
 
     self:_add_command(unique, action, 'ban', options)
+
+    action.parameters = parameters
   end
 
-  if action.bantime and (action.bantime >= 0) and command.unban then
+  if action.bantime and (action.bantime >= 0) and command.unban 
+    and not (action.parameters and action.parameters.unban == false)
+  then
+    local parameters = build_action_params('unban', action, command)
+
     local unique  = command.unban.unique  or command.unique
     local options = command.unban.options or command.options
     action.uuid = uuid.new()
     action.date = date(action.date):addseconds(action.bantime):fmt("%F %T")
     action.cmd  = command.unban
+    action.parameters, parameters = parameters, action.parameters
 
     self:_add_command(unique, action, 'unban', options)
+
+    action.parameters = parameters
   end
 
   return
