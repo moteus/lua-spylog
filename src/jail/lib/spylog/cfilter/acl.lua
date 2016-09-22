@@ -1,12 +1,12 @@
 local log        = require "spylog.log"
 local ut         = require "lluv.utils"
-local BaseFilter = require "spylog.prefilter.base"
+local BaseFilter = require "spylog.cfilter.base"
 local iputil     = require "spylog.iputil"
 
 local AclFilter = ut.class(BaseFilter) do
 
 function AclFilter:__init(filter)
-  local cidr = assert(filter.cidr, 'prefilter with type `acl` has no cidr list')
+  local cidr = assert(filter.cidr, 'capture filter with type `acl` has no cidr list')
 
   filter.value = filter.value or 'host'
   self.__base.__init(self, filter)

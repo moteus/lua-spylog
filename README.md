@@ -104,20 +104,23 @@ JAIL{
 }
 ```
 
-#### Jail pre filters
+#### Jail capture filters
 It is also possible add some additional filter to jails.
 E.g. we want count only attempt to call to some area codes.
 We can not do this on filter side because we can handle same
-log line with different jails. Each pre filter should have
-name as first element. Currently support `prefix` and `acl`.
-Prefix filter should hanve `prefix` field with array of prefixes
-of file name. Acl filter should have `cidr` field with array of
-ip and cidr.
+log line with different jails. Each capture filter should have
+name as first element. Currently support `prefix`, `acl`, `regex`
+and `list` filters. 
+`prefix` filter should hanve `prefix` field with array of prefixes
+of file name. 
+`acl` filter should have `cidr` field with array of IP and/or CIDR.
+`regex` filter should have `regex` string/array of strings.
+`list` filter should have `list` array of strings.
 
 ```Lua
 JAIL{
   -- count only calls to Cuba and Albania and exclude '192.168.123.22' host
-  prefilter = {
+  cfilter = {
     {'prefix',          -- filter type
       type  = 'allow',  -- count if match
       value = 'number', -- capture name to filter

@@ -3,18 +3,19 @@ local config      = require "spylog.config"
 config.LOG.prefix = "[jail] "
 -------------------------------------------------
 
-local log      = require "spylog.log"
-local uv       = require "lluv"
-uv.poll_zmq    = require "lluv.poll_zmq"
-local zthreads = require "lzmq.threads"
-local ztimer   = require "lzmq.timer"
-local cjson    = require "cjson.safe"
-local Counter  = require "spylog.TimeCounters"
-local date     = require "date"
-local stp      = require "StackTracePlus"
-local exit     = require "spylog.exit"
-local var      = require "spylog.var"
-local path     = require "path"
+local log           = require "spylog.log"
+local uv            = require "lluv"
+uv.poll_zmq         = require "lluv.poll_zmq"
+local zthreads      = require "lzmq.threads"
+local ztimer        = require "lzmq.timer"
+local cjson         = require "cjson.safe"
+local Counter       = require "spylog.TimeCounters"
+local date          = require "date"
+local stp           = require "StackTracePlus"
+local exit          = require "spylog.exit"
+local var           = require "spylog.var"
+local path          = require "path"
+local CaptureFilter = require "spylog.cfilter"
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
 
@@ -144,29 +145,6 @@ local function append_jail(jails, filter_name, jail)
   return jails
 end
 
-local function build_filter(jail)
-  local filters = {}
-  if type(jail.prefilter[1]) ~= 'table' then
-    jail.prefilter = {jail.prefilter}
-  end
-
-  for i = 1, #jail.prefilter do
-    local filter = jail.prefilter[i]
-
-    assert(filter[1], string.format('no name for pre filter #%d in jail `%s`', i, jail.name))
-
-    local Filter = require ("spylog.prefilter." .. filter[1])
-
-    filters[#filters + 1] = assert(Filter.new(filter))
-
-    log.info('[%s] add prefilter `%s`', jail.name, filters[#filters]:name())
-  end
-
-  jail.prefilter = filters
-
-  return true
-end
-
 local function j(t)
   local jails = {}
   for i = 1, #t do if t[i].enabled or (t[i].enabled == nil) then
@@ -189,11 +167,21 @@ local function j(t)
       end
     end
 
-    if jail.prefilter then
-      local ok, err = pcall(build_filter, jail)
-      if not ok then return nil, err end
-    end
+    if jail.cfilter then
+      local ok, cfilter= pcall(CaptureFilter.new, jail.cfilter)
+      if not ok then 
+        local err = string.format('can not build capture filter `%s`: %s', jail.name, cfilter)
+        return nil, err
+      end
 
+      local names = cfilter:filter_names()
+      if #names == 0 then jail.cfilter = nil else
+        jail.cfilter = cfilter
+        for i = 1, #names do
+          log.info('[%s] add capture filter `%s`', jail.name, names[i])
+        end
+      end
+    end
   end end
 
   return jails
@@ -230,13 +218,13 @@ local function check_jail(jail, capture)
     return
   end
 
-  if jail.prefilter then for i = 1, #jail.prefilter do
-    local filter = jail.prefilter[i]
-    if not filter:apply(capture) then
-      log.debug("[%s] message from %s excluded by pre filter %s", jail.name, capture.filter, filter:name())
+  if jail.cfilter then 
+    local ok, cfilter_name = jail.cfilter:apply(capture)
+    if not ok then
+      log.debug("[%s] message from %s excluded by capture filter %s", jail.name, capture.filter, cfilter_name)
       return
     end
-  end end
+  end
 
   local counter = jail_counters[jail.name]
   if not counter then
