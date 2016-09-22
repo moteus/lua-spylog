@@ -12,6 +12,7 @@ local stp           = require "StackTracePlus"
 local regex         = require "spylog.filter.regex"
 local FilterManager = require "spylog.filter.manager"
 local exit          = require "spylog.exit"
+local CaptureFilter = require "spylog.cfilter"
 
 local pub, err = zthreads.context():socket("PUB", {
   [config.CONNECTIONS.FILTER.JAIL.type] = config.CONNECTIONS.FILTER.JAIL.address
@@ -26,6 +27,15 @@ end
 log.debug("config.LOG.multithread: %s", tostring(config.LOG.multithread))
 
 local function jail(filter, capture)
+
+  if filter.cfilter then 
+    local ok, cfilter_name = filter.cfilter:apply(capture)
+    if not ok then
+      log.debug("[%s] excluded by capture filter %s", filter.name, cfilter_name)
+      return
+    end
+  end
+
   local msg, err = cjson.encode(capture)
 
   if not msg then
@@ -49,6 +59,22 @@ local function init_service()
 
       assert(type(filter.name) == 'string', 'invalid filter name')
       assert(filter.source, string.format('filter `%s` has no source', filter.name))
+
+      if filter.cfilter then
+        local ok, cfilter= pcall(CaptureFilter.new, filter.cfilter)
+        if not ok then 
+          local err = string.format('can not build capture filter `%s`: %s', filter.name, cfilter)
+          return nil, err
+        end
+
+        local names = cfilter:filter_names()
+        if #names == 0 then filter.cfilter = nil else
+          filter.cfilter = cfilter
+          for i = 1, #names do
+            log.info('[%s] add capture filter `%s`', filter.name, names[i])
+          end
+        end
+      end
 
       filters:add(filter)
     end
