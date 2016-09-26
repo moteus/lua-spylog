@@ -25,7 +25,11 @@ end
 function ListFilter:apply(capture)
   local value = self:value(capture)
 
-  return value and self._hash[value]
+  if value and self._hash[value] then
+    return self._allow
+  end
+
+  return not self._allow
 end
 
 end
