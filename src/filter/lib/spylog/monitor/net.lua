@@ -12,6 +12,7 @@ local function tcp_cli_monitor(proto, address, opt, cb)
 
   local eol = opt and opt.eol or '\r\n'
   local reconnect_timeout = (opt and opt.reconnect or 30) * 1000
+  local max_line = opt and opt.max_line or MAX_LINE_LENGTH
 
   local reconnect_timer = uv.timer(0)
 
@@ -37,7 +38,7 @@ local function tcp_cli_monitor(proto, address, opt, cb)
         while true do
           local line = buffer:read_line()
           if not line then
-            if buffer.size and (buffer:size() > MAX_LINE_LENGTH) then
+            if buffer.size and (buffer:size() > max_line) then
               log.alert('%s get too long line: %d `%s...`', log_header, buffer:size(), buffer:read_n(256))
               buffer:reset()
             end

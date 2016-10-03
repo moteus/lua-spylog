@@ -11,7 +11,8 @@ local unpack = unpack or table.unpack
 local function file_monitor(fname, opt, cb)
   local log_header = string.format('[file:%s]', fname)
 
-  local eol = (opt or {}).eol or {'\r*\n', true}
+  local max_line = opt and opt.max_line or MAX_LINE_LENGTH
+  local eol = opt and opt.eol or {'\r*\n', true}
   if type(eol) == 'string' then eol = {eol, false} end
   local buffer = ut.Buffer.new(unpack(eol, 1, 2))
   local monitor = filemon.new(opt)
@@ -25,7 +26,7 @@ local function file_monitor(fname, opt, cb)
     while true do
       local line = buffer:read_line()
       if not line then
-        if buffer.size and (buffer:size() > MAX_LINE_LENGTH) then
+        if buffer.size and (buffer:size() > max_line) then
           log.alert('%s get too long line: %d `%s...`', log_header, buffer:size(), buffer:read_n(256))
           buffer:reset()
         end
