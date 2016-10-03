@@ -64,7 +64,7 @@ local function init_service()
         local ok, cfilter= pcall(CaptureFilter.new, filter.cfilter)
         if not ok then 
           local err = string.format('can not build capture filter `%s`: %s', filter.name, cfilter)
-          return nil, err
+          return error(err)
         end
 
         local names = cfilter:filter_names()
