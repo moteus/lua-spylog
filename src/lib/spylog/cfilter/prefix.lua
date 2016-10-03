@@ -1,6 +1,6 @@
 local log        = require "spylog.log"
 local ut         = require "lluv.utils"
-local BaseFilter = require "spylog.filter.base"
+local BaseFilter = require "spylog.cfilter.base"
 local config     = require "spylog.config"
 local ptree      = require "prefix_tree"
 local path       = require "path"
