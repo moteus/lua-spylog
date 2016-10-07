@@ -75,7 +75,12 @@ local function BuildArgs(args)
   for _, a in ipairs(args) do
     if s then s = s .. ' ' else s = '' end
     a = (a):gsub('"', '""')
-    if a:find("%s") then a = '"' .. a .. '"' end
+    if a:find("%s") then
+      -- escape `a="b c d"`
+      local v, n = string.gsub(a, '^([^=%s]+)=(.+)$', '%1="%2"')
+      if n == 1 then a = v
+      else a = '"' .. a .. '"' end
+    end
     s = s .. a
   end
   return s
