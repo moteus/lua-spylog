@@ -4,6 +4,7 @@ config.LOG.prefix = "[filter] "
 -------------------------------------------------
 
 local log           = require "spylog.log"
+local version       = require "spylog.version"
 local uv            = require "lluv"
 local zthreads      = require "lzmq.threads"
 local ztimer        = require "lzmq.timer"
@@ -13,6 +14,8 @@ local regex         = require "spylog.filter.regex"
 local FilterManager = require "spylog.filter.manager"
 local exit          = require "spylog.exit"
 local CaptureFilter = require "spylog.cfilter"
+
+log.info('Starting %s version %s. %s', version._NAME, version._VERSION, version._COPYRIGHT)
 
 local pub, err = zthreads.context():socket("PUB", {
   [config.CONNECTIONS.FILTER.JAIL.type] = config.CONNECTIONS.FILTER.JAIL.address

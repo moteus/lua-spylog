@@ -4,6 +4,7 @@ config.LOG.prefix = "[jail] "
 -------------------------------------------------
 
 local log           = require "spylog.log"
+local version       = require "spylog.version"
 local uv            = require "lluv"
 uv.poll_zmq         = require "lluv.poll_zmq"
 local zthreads      = require "lzmq.threads"
@@ -16,6 +17,8 @@ local exit          = require "spylog.exit"
 local var           = require "spylog.var"
 local path          = require "path"
 local CaptureFilter = require "spylog.cfilter"
+
+log.info('Starting %s version %s. %s', version._NAME, version._VERSION, version._COPYRIGHT)
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
 

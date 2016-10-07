@@ -4,6 +4,7 @@ config.LOG.prefix = "[action] "
 -------------------------------------------------
 
 local log      = require "spylog.log"
+local version  = require "spylog.version"
 local uv       = require "lluv"
 uv.poll_zmq    = require "lluv.poll_zmq"
 local zthreads = require "lzmq.threads"
@@ -15,6 +16,8 @@ local stp      = require "StackTracePlus"
 local ActionDB = require "spylog.actiondb"
 local spawn    = require "spylog.actions.spawn"
 local exit     = require "spylog.exit"
+
+log.info('Starting %s version %s. %s', version._NAME, version._VERSION, version._COPYRIGHT)
 
 log.debug("config.LOG.multithread: %s", tostring(config.LOG.multithread))
 

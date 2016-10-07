@@ -5,6 +5,7 @@ config.main_thread = true
 config.LOG.multithread = true
 ---------------------------------------------------
 
+local version   = require "spylog.version"
 local zthreads  = require "lzmq.threads"
 local ztimer    = require "lzmq.timer"
 local uv        = require "lluv"
@@ -12,6 +13,8 @@ local stp       = require "StackTracePlus"
 local loglib    = require "log"
 local log       = require "spylog.log"
 local exit      = require "spylog.exit"
+
+log.info('Starting %s version %s. %s', version._NAME, version._VERSION, version._COPYRIGHT)
 
 local init_thread = function(...)
   require "LuaService"
