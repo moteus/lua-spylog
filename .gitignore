@@ -1,0 +1,14 @@
+
+# logs from debug runs
+
+src/spylog/data/
+src/spylog/logs/
+src/action/data/
+src/action/logs/
+src/filter/logs/
+src/jail/logs/
+
+# Binaries
+
+*.exe
+*.dll
