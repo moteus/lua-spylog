@@ -286,6 +286,107 @@ local function trap_print(t)
   end
 end
 
+-------------------------------------------------------------------------------
+local trap2eventlog do
+
+local eventlog_fields = {
+  [ '1'  ] = 'text';
+  [ '2'  ] = 'userId';
+  [ '3'  ] = 'system';
+  [ '4'  ] = 'type';
+  [ '5'  ] = 'category';
+  -- [ '6'  ] = 'var1';
+  -- [ '7'  ] = 'var2';
+  -- [ '8'  ] = 'var3';
+  -- [ '9'  ] = 'var4';
+  -- [ '10' ] = 'var5';
+  -- [ '11' ] = 'var6';
+  -- [ '12' ] = 'var7';
+  -- [ '13' ] = 'var8';
+  -- [ '14' ] = 'var9';
+  -- [ '15' ] = 'var10';
+  -- [ '16' ] = 'var11';
+  -- [ '17' ] = 'var12';
+  -- [ '18' ] = 'var13';
+  -- [ '19' ] = 'var14';
+  -- [ '20' ] = 'var15';
+}
+
+-- MS specific OID
+local EventLogOID = '1.3.6.1.4.1.311.1.13.1.'
+
+local function decode_event_log_oid(str)
+  if string.find(str, EventLogOID, nil, true) ~= 1 then
+    return
+  end
+
+  str = string.sub(str, #EventLogOID + 1)
+
+  local id, data = string.match(str, '^(%d+)(%.[%d%.]+)$')
+
+  if id == '9999' then
+    id, data = string.match(data, '^%.(%d+)(%.[%d%.]+)$')
+    local name = eventlog_fields[id]
+    if name then return name, data end
+  else
+    -- https://support.microsoft.com/en-us/kb/318464
+    local len = tonumber(id)
+    local pat = "^(" .. ("%.%d+"):rep(len) .. ")(.*)$"
+    str, data = string.match(data, pat)
+    if str then
+      str = string.gsub(str, "(%.)(%d+)", function(_, ch)
+        return string.char(tonumber(ch))
+      end)
+      return 'source', str, data
+    end
+  end
+end
+
+local function Specific2EventID(v)
+  -- I can not find what rules MS uses for this.
+  -- Seems It get event id and set some significant bits.
+  -- e.g.
+  -- PHP event 3 => 2147483651 (31 bit sets to 1)
+  -- MySQL event 100 => 3221225572 (31 and 30 bits set to 1)
+  -- Profsvc event 1 => 2415919105, 2415919105 and 805306369
+  --
+  -- So I just assume that all events will fit to 2 bytes.
+  --
+
+  return bit.band(0xFFFF, v)
+end
+
+trap2eventlog = function(t)
+  if not t.enterprise then return end
+
+  local name, value = decode_event_log_oid(t.enterprise)
+  if name ~= 'source' then return end
+
+  -- I am not sure why but I get `-2147483645` for event id `3`
+  local EventID = t.specific and Specific2EventID(t.specific)
+
+  local event = {
+    id         = EventID;
+    source     = value;
+    agent      = t.agent;
+    time       = t.time;
+    -- do not use
+    -- _community = t.community;
+    -- _generic   = t.generic;
+    -- _specific  = t.specific;
+  }
+
+  for i = 1, #t.data do
+    local name, rest = decode_event_log_oid(t.data[i][1])
+    if name then event[name] = t.data[i][2] end
+  end
+
+  return event
+end
+
+end
+-------------------------------------------------------------------------------
+
 return {
   decode_hex = function(str)
     return trap_decode(hex2bin(str))
@@ -293,6 +394,12 @@ return {
 
   decode = function(str)
     return trap_decode(str)
+  end;
+
+  decode_eventlog = function(str)
+    local trap, err = trap_decode(str)
+    if not trap then return nil, err end
+    return trap2eventlog(trap)
   end;
 
   bin2hex = bin2hex;
