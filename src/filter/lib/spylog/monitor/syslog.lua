@@ -1,7 +1,7 @@
-local uv     = require "lluv"
 local ut     = require "lluv.utils"
 local log    = require "spylog.log"
 local syslog = require "spylog.syslog"
+local net    = require "spylog.monitor.net"
 
 local function decode(fmt, ...)
   local pri, ver, ts, host, app, procid, msgid, sdata, msg
@@ -18,32 +18,21 @@ local function syslog_monitor(endpoint, opt, cb)
   local proto, address, port = ut.split_first(endpoint,"://", true)
   assert(proto == 'udp')
 
-  address, port = ut.split_first(address,":", true)
-  port = tonumber(port or 514)
+  address, port = ut.split_first(address, ":", true)
+  port = tonumber(port) or 514
 
-  uv.udp():bind(address, port, function(self, err)
-    if err then
-      self:close()
-      return log.fatal("Can not start syslog monitor: %s", tostring(err))
-    end
+  local log_header = string.format('[syslog/%s] [%s:%d]', proto, address, port)
 
-    self:start_recv(function(self, err, data, host, port)
-      if err then
-        return log.error("Recv syslog: %s", tostring(err))
-      end
-
+  return net.monitor(string.format('%s://%s:%d', proto, address, port), opt,
+    function(data)
       local pri, msg = decode(syslog.unpack(data))
       if not pri then
-        return log.warning("Recv non syslog: %q", data)
+        return log.warning("%s recv non syslog: %q", log_header, data)
       end
 
-      log.trace("syslog: %d %q", pri, msg)
-
       cb(pri, msg)
-    end)
-
-    log.info("Syslog monitor started on %s://%s:%d", proto, address, port)
-  end)
+    end, log_header
+  )
 end
 
 local function syslog_filter(filter, pri, msg)

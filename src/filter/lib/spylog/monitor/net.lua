@@ -4,11 +4,11 @@ local log    = require "spylog.log"
 
 local MAX_LINE_LENGTH = 4096
 
-local function tcp_cli_monitor(proto, address, opt, cb)
+local function tcp_cli_monitor(proto, address, opt, cb, log_header)
   local address, port = ut.split_first(address,":", true)
   port = assert(tonumber(port), 'port is required')
 
-  local log_header = string.format('[net/%s] [%s:%d]', proto, address, port)
+  local log_header = log_header or string.format('[net/%s] [%s:%d]', proto, address, port)
 
   local eol = opt and opt.eol or '\r\n'
   local reconnect_timeout = (opt and opt.reconnect or 30) * 1000
@@ -58,11 +58,41 @@ local function tcp_cli_monitor(proto, address, opt, cb)
   end)
 end
 
-local function net_monitor(endpoint, opt, cb)
-  local proto, address = ut.split_first(endpoint,"://", true)
+local function udp_srv_monitor(proto, address, opt, cb, log_header)
+  local address, port = ut.split_first(address, ":", true)
+  port = assert(tonumber(port), 'port is required')
+
+  local log_header = log_header or string.format('[net/%s] [%s:%d]', proto, address, port)
+
+  uv.udp():bind(address, port, function(self, err)
+    if err then
+      self:close()
+      return log.fatal("%s can not bind: %s", log_header, tostring(err))
+    end
+
+    log.info("%s started", log_header)
+
+    self:start_recv(function(self, err, data, host, port)
+      if err then
+        return log.error("%s recv: %s", log_header, tostring(err))
+      end
+
+      cb(pri, msg)
+    end)
+
+    log.info("%s starting ...", log_header)
+  end)
+end
+
+local function net_monitor(endpoint, opt, cb, log_header)
+  local proto, address = ut.split_first(endpoint, "://", true)
 
   if proto == 'tcp' then
-    return tcp_cli_monitor(proto, address, opt, cb)
+    return tcp_cli_monitor(proto, address, opt, cb, log_header)
+  end
+
+  if proto == 'udp' then
+    return udp_srv_monitor(proto, address, opt, cb, log_header)
   end
 
   log.fatal('[net] unknown protocol: %', proto)
