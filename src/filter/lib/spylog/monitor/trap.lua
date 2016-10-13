@@ -3,6 +3,8 @@ local log  = require "spylog.log"
 local trap = require "spylog.trap"
 local net  = require "spylog.monitor.net"
 
+local LVL_TRACE = require "log".LVL.TRACE
+
 local function append(t, v) t[#t+1] = v return t end
 
 local active_monitors = {}
@@ -29,6 +31,10 @@ local function trap_monitor(endpoint, opt, cb, log_header)
         local t = trap.decode(data)
         if not t then
           return log.warning("%s recv non trap: %q", log_header, trap.bin2hex(data))
+        end
+
+        if log.lvl() >= LVL_TRACE then
+          log.trace('%s %s', log_header, trap.bin2hex(data))
         end
 
         for i = 1, #active_monitor do
