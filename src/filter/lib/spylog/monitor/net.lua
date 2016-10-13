@@ -5,7 +5,7 @@ local log    = require "spylog.log"
 local MAX_LINE_LENGTH = 4096
 
 local function tcp_cli_monitor(proto, address, opt, cb, log_header)
-  local address, port = ut.split_first(address,":", true)
+  local address, port = ut.split_first(address, ":", true)
   port = assert(tonumber(port), 'port is required')
 
   local log_header = log_header or string.format('[net/%s] [%s:%d]', proto, address, port)
@@ -77,11 +77,11 @@ local function udp_srv_monitor(proto, address, opt, cb, log_header)
         return log.error("%s recv: %s", log_header, tostring(err))
       end
 
-      cb(pri, msg)
+      cb(data)
     end)
-
-    log.info("%s starting ...", log_header)
   end)
+
+  log.info("%s starting ...", log_header)
 end
 
 local function net_monitor(endpoint, opt, cb, log_header)

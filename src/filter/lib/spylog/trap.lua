@@ -1,6 +1,16 @@
 local ut  = require "lluv.utils"
 local bit = require "bit32"
 
+local trap_generic = {
+  [0] = 'coldStart',
+  [1] = 'warmStart',
+  [2] = 'linkDown',
+  [3] = 'linkUp',
+  [4] = 'authenticationFailure',
+  [5] = 'egpNeighborLoss',
+  [6] = 'enterpriseSpecific'
+}
+
 local function bin2hex(str)
   local t = {string.byte(str, 1, #str)}
   for i = 1, #t do t[i] = string.format('%.2X', t[i]) end
@@ -275,7 +285,7 @@ local function trap_print(t)
   print("Community:",  t.community)
   print("Enterprise:", t.enterprise)
   print("Agent:",      t.agent)
-  print("Generic:",    t.generic)
+  print("Generic:",    (t.generic and trap_generic[t.generic] or 'Unknown') .. '(' .. tostring(t.generic) .. ')')
   print("Specific:",   t.specific)
   print("Time:",       t.time)
   print("Data:")
@@ -286,132 +296,6 @@ local function trap_print(t)
   end
 end
 
--------------------------------------------------------------------------------
-local trap2eventlog do
-
-local eventlog_fields = {
-  [ '1'  ] = 'text';
-  [ '2'  ] = 'userId';
-  [ '3'  ] = 'system';
-  [ '4'  ] = 'type';
-  [ '5'  ] = 'category';
-  -- [ '6'  ] = 'var1';
-  -- [ '7'  ] = 'var2';
-  -- [ '8'  ] = 'var3';
-  -- [ '9'  ] = 'var4';
-  -- [ '10' ] = 'var5';
-  -- [ '11' ] = 'var6';
-  -- [ '12' ] = 'var7';
-  -- [ '13' ] = 'var8';
-  -- [ '14' ] = 'var9';
-  -- [ '15' ] = 'var10';
-  -- [ '16' ] = 'var11';
-  -- [ '17' ] = 'var12';
-  -- [ '18' ] = 'var13';
-  -- [ '19' ] = 'var14';
-  -- [ '20' ] = 'var15';
-}
-
-local eventlog_levels = {
-  [0] = 'Success';
-  [1] = 'Informational';
-  [2] = 'Warning';
-  [3] = 'Error';
-}
-
-local eventlog_types = {
-  ['1' ] = 'Error';
-  ['2' ] = 'Warning';
-  ['4' ] = 'Informational';
-  ['8' ] = 'Success Audit';
-  ['16'] = 'Failure Audit';
-}
-
--- MS specific OID
-local EventLogOID = '1.3.6.1.4.1.311.1.13.1.'
-
-local function decode_event_log_oid(str)
-  if string.find(str, EventLogOID, nil, true) ~= 1 then
-    return
-  end
-
-  str = string.sub(str, #EventLogOID + 1)
-
-  local id, data = string.match(str, '^(%d+)(%.[%d%.]+)$')
-
-  if id == '9999' then
-    id, data = string.match(data, '^%.(%d+)(%.[%d%.]+)$')
-    local name = eventlog_fields[id]
-    if name then return name, data end
-  else
-    -- https://support.microsoft.com/en-us/kb/318464
-    local len = tonumber(id)
-    local pat = "^(" .. ("%.%d+"):rep(len) .. ")(.*)$"
-    str, data = string.match(data, pat)
-    if str then
-      str = string.gsub(str, "(%.)(%d+)", function(_, ch)
-        return string.char(tonumber(ch))
-      end)
-      return 'source', str, data
-    end
-  end
-end
-
-local function Specific2EventID(v)
-  -- https://support.microsoft.com/en-us/kb/160969
-  -- Low 16 bits is Event ID.
-  -- Hi 2 bits is default severity.
-  --
-  -- But other bits stil unknown.
-  -- Also MS send this value as signed integer so it
-  -- not match to value from evntwin `Trap Specific ID`
-  -- E.g. Trap Specific ID `2147483651` converts to `-2147483645`
-  --
-
-  local id  = bit.band(0xFFFF, v)
-  local lvl = eventlog_levels[bit.rshift(v, 30)]
-
-  return id, lvl
-end
-
-trap2eventlog = function(t)
-  if not t.enterprise then return end
-
-  local name, value = decode_event_log_oid(t.enterprise)
-  if name ~= 'source' then return end
-
-  local EventID, Level = Specific2EventID(t.specific)
-
-  local event = {
-    id         = EventID;
-    severity   = Level;
-    source     = value;
-    agent      = t.agent;
-    time       = t.time;
-    -- do not use
-    -- _community = t.community;
-    -- _generic   = t.generic;
-    -- _specific  = t.specific;
-  }
-
-  for i = 1, #t.data do
-    local name, rest = decode_event_log_oid(t.data[i][1])
-    if name then event[name] = t.data[i][2] end
-  end
-
-  -- e.g. for 529
-  -- event.severity='Success'
-  -- event.type='Failure Audit'
-  -- so I think `type` is more accurate
-
-  event.type = event.type and eventlog_types[event.type] or event.type
-
-  return event
-end
-
-end
--------------------------------------------------------------------------------
-
 return {
   decode_hex = function(str)
     return trap_decode(hex2bin(str))
@@ -419,12 +303,6 @@ return {
 
   decode = function(str)
     return trap_decode(str)
-  end;
-
-  decode_eventlog = function(str)
-    local trap, err = trap_decode(str)
-    if not trap then return nil, err end
-    return trap2eventlog(trap)
   end;
 
   bin2hex = bin2hex;

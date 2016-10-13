@@ -1,8 +1,9 @@
-local config = require "spylog.config"
-local log    = require "spylog.log"
-local path   = require "path"
-local uv     = require "lluv"
-local ut     = require "lluv.utils"
+local config   = require "spylog.config"
+local log      = require "spylog.log"
+local path     = require "path"
+local uv       = require "lluv"
+local ut       = require "lluv.utils"
+local EventLog = require "spylog.eventlog"
 
 local function append(t, v)
   t[#t + 1] = v
@@ -83,6 +84,11 @@ function Source:add(filter)
         filter.trap[filter.trap[i]] = true
       end
     end
+  end
+
+  if self._type == 'eventlog' then
+    assert(type(filter.events) == 'table', 'No events list for eventlog filter')
+    filter.events = EventLog.BuildFilter(filter.events)
   end
 
   log.info("attach filter `%s` to source `%s`", filter.name, self._string)

@@ -20,9 +20,9 @@
 
 FILTER{ "rdp-fail-access";
   enabled = false;
-  source  = "trap:udp://127.0.0.1";
+  source  = "eventlog:udp://127.0.0.1";
   exclude = WHITE_IP;
-  trap    = {529, 4625};
+  events  = {'Security', {529, 4625}};
   failregex = {
     "Source Network Address:%s+([0-9.]+)";
     --cp1251
