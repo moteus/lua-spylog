@@ -52,12 +52,13 @@ JAIL{"voip-auth-fail";
  * Text log file
  * SysLog UDP server (rfc3164 and rfc5424)
  * SNMP trap UDP server (allows handle Windows event logs)
+ * EventLog (based on event trap) allows additional filters based on source names.
  * FreeSWITCH ESL TCP connection
  * TCP raw connection
 
 ### Filters
 
-#### Named cptures
+#### Named captures
 By default filter names first capure as `date` and second one as `host`.
 If there only one capture then `date` set as current timestamp and capture names as `host`.
 It is possible to assign names to captures using `capture` array.
