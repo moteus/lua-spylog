@@ -1,4 +1,5 @@
 -- https://www.badips.com
+-- to set Key you need call `curl http://www.badips.com/set/key/<key>`
 -- in jail e.g. `action = {'ipsec', {'badips', {category='sip'}}}`
 
 ACTION{"badips",
