@@ -32,6 +32,7 @@ dependencies = {
   "stacktraceplus",
   "lluv-ssl",
   "sendmail",
+  "try",
   "prefix_tree",
   "gntp",
   "sqlite3",

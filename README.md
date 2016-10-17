@@ -163,6 +163,7 @@ JAIL{
 ### To support `mail` action
  - [lluv-ssl](https://luarocks.org/modules/moteus/lluv-ssl)
  - [sendmail](https://luarocks.org/modules/moteus/sendmail)
+ - [try](https://luarocks.org/modules/moteus/try)
 
 ### To support `growl` action
  - [gntp](https://luarocks.org/modules/moteus/gntp)
@@ -171,5 +172,5 @@ JAIL{
 ### To support `esl` source type
  - [lluv-esl](https://luarocks.org/modules/moteus/lluv-esl)
 
-### To support `prefix` filter for jails
+### To support `prefix` capture filter
  - [prefix_tree](https://luarocks.org/modules/moteus/prefix_tree)
