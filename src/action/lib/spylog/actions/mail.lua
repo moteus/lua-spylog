@@ -1,4 +1,4 @@
-if _VERSION == "Lua 5.1" then
+if (_VERSION == "Lua 5.1") and (not coroutine.coco) then
   -- Lua 5.1 does not support yield accross
   -- C function so we use `try.co` module to
   -- replace default implementation of LuaSocket
