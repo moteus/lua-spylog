@@ -8,8 +8,8 @@ FILTER{ "radmin-fail-access";
   hint    = "Password is incorrect";
   failregex = {
     -- radmin 2.2
-    "^[%d+%.<>: ]+Connection from ([%d+%.]+) : Password is incorrect or error occurs"
+    "^[%d+%.<>: ]+Connection from ([%d+%.]+) : Password is incorrect or error occurs";
     -- radmin 3.0
-    "^&lt;%d+&gt; RServer3 [^()]+%(([%d%.]+)%).-Password is incorrect or error occurs"
+    "^&lt;%d+&gt; RServer3 [^()]+%(([%d%.]+)%).-Password is incorrect or error occurs";
   };
 }
