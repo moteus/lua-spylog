@@ -5,6 +5,8 @@
 ACTION{"badips",
   ban = 'curl --fail --user-agent "SpyLog" https://www.badips.com/add/<category>/<host>';
 
+  unique = 'badips <HOST>';
+
   parameters = {
     category = 'sip';
   };

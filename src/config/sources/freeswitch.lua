@@ -1,7 +1,7 @@
 -- based on log file
 -- SOURCE{"freeswitch",
 --   "file:c:/FreeSWITCH/log/freeswitch.log",
---   poll = 30;
+--   poll = 30, max_line = 20 * 1024;
 -- }
 
 -- based on ESL
