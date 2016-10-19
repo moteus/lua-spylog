@@ -13,7 +13,9 @@ The `lua-spylog` consist of three services.
 
 All services can be run as separate process or as thread in one multithreaded process.
 To run spylog as Windows service you can use [LuaService](https://github.com/moteus/luaservice).
-Also works with [nssm](http://nssm.cc) service helper.
+
+For Windows there exists installer which allows install SpyLog and all dependencies. You can download
+it form [Releases](https://github.com/moteus/lua-spylog/releases) page.
 
 ## Configuration
 
