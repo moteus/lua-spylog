@@ -30,7 +30,7 @@ if "%ROOT%" == "" (
 
 if "%LUA_VER%" == "" (set LUA_VER=5.1)
 
-if "%TREE%" == "" (set TREE=%ROOT%\spylog-%LUA_VER%)
+if "%TREE%" == "" (set TREE=spylog-%LUA_VER%)
 
 set LR=luarocks-%LUA_VER%
 
