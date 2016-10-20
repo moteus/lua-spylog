@@ -67,4 +67,4 @@ call %LR% --tree %TREE% install openssl    --server=http://luarocks.org/dev
 :: install rest deps
 ::==================================================================
 
-call %LR% --tree %TREE% --only-deps install rockspecs\spylog-scm-0.rockspec
+call %LR% --tree %TREE% --only-deps install %ROOT%\rockspecs\spylog-scm-0.rockspec
