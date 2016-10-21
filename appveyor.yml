@@ -1,0 +1,42 @@
+version: 0.0.1.{build}
+
+environment:
+  matrix:
+  - LUA: "lua 5.1"
+
+# Start builds on tags only (GitHub and BitBucket)
+# skip_non_tags: true
+
+before_build:
+  - choco install -y curl InnoSetup
+  - set PATH="C:\Program Files\7-Zip";%PATH%
+  - set PATH="C:\Program Files (x86)\Inno Setup 5";%PATH%
+  - set PATH=C:\Python27\Scripts;%PATH%
+  - git clone https://github.com/moteus/lua-spylog-installer installer
+
+build_script:
+  - cd .\installer\win
+  - iscc spylog.iss /O"%APPVEYOR_BUILD_FOLDER%" /DArch=x86 /DLuaVer=5.1 /DSpyLogGit=..\..
+  - iscc spylog.iss /O"%APPVEYOR_BUILD_FOLDER%" /DArch=x64 /DLuaVer=5.1 /DSpyLogGit=..\..
+
+artifacts:
+  - path: SpyLog-x86*.exe
+    name SpyLog-x86
+
+  - path: SpyLog-x64*.exe
+    name SpyLog-x64
+
+deploy:
+  release: SpyLog-$(appveyor_repo_tag_name)
+  description: 'SpyLog release'
+  provider: GitHub
+  auth_token:
+    secure: KND19NRQZZV7vYaKgIRzXKstou4efmof66UuYLBoB/GZizkcWrlge3q5Mul8ONRT
+  artifact:
+    SpyLog-x86
+    SpyLog-x64
+  draft: false
+  prerelease: true
+  on:
+    branch: master
+    appveyor_repo_tag: true
