@@ -21,10 +21,10 @@ build_script:
 
 artifacts:
   - path: SpyLog-x86*.exe
-    name SpyLog-x86
+    name: SpyLog-x86
 
   - path: SpyLog-x64*.exe
-    name SpyLog-x64
+    name: SpyLog-x64
 
 deploy:
   release: SpyLog-$(appveyor_repo_tag_name)
