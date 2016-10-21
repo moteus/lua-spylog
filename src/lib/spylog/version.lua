@@ -1,3 +1,6 @@
+-- This file uses also to make installer.
+-- !!! Do not change single quete 
+-- !!! Do not define more than one value per line
 return {
   _NAME      = 'SpyLog';
   _VERSION   = '0.0.1-beta.2';
