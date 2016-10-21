@@ -1,11 +1,7 @@
 version: 0.0.1.{build}
 
-environment:
-  matrix:
-  - LUA: "lua 5.1"
-
 # Start builds on tags only (GitHub and BitBucket)
-# skip_non_tags: true
+skip_non_tags: true
 
 before_build:
   - choco install -y curl InnoSetup
@@ -27,16 +23,13 @@ artifacts:
     name: SpyLog-x64
 
 deploy:
-  release: SpyLog-$(appveyor_repo_tag_name)
-  description: 'SpyLog release'
-  provider: GitHub
-  auth_token:
-    secure: KND19NRQZZV7vYaKgIRzXKstou4efmof66UuYLBoB/GZizkcWrlge3q5Mul8ONRT
-  artifact:
-    SpyLog-x86
-    SpyLog-x64
-  draft: false
-  prerelease: true
-  on:
-    branch: master
-    appveyor_repo_tag: true
+  - provider: GitHub
+    auth_token:
+      secure: quhtxEmz8RrBAwBB5rZ675IUuhqjiDxTNouM5rEnUTeT7Gj3Lr4qPxuRcF60dqzW
+    artifact:
+      SpyLog-x86
+      SpyLog-x64
+    draft: false
+    prerelease: true
+    on:
+      appveyor_repo_tag: true
