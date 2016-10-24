@@ -1,5 +1,8 @@
 # Execute actions based on log records
 
+[![SpyLog-x86-0.0.1-beta.3.exe](https://img.shields.io/badge/0.0.1--beta.3-x86-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.1-beta.3/SpyLog-x86-0.0.1-beta.3.exe)
+[![SpyLog-x64-0.0.1-beta.3.exe](https://img.shields.io/badge/0.0.1--beta.3-x64-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.1-beta.3/SpyLog-x64-0.0.1-beta.3.exe)
+
 The main goal of this project is provide [fail2ban](http://www.fail2ban.org) functionality to Windows.
 
 ## Install/Start
