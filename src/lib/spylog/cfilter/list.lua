@@ -13,8 +13,10 @@ function ListFilter:__init(filter)
 
   self.__base.__init(self, filter)
 
+  self._nocase = not not filter.nocase
+
   local hash = {} for i = 1, #filter.list do
-    hash[ filter.list[i] ] = true
+    hash[ self._nocase and string.upper(filter.list[i]) or filter.list[i] ] = true
   end
 
   self._hash = hash
@@ -25,8 +27,13 @@ end
 function ListFilter:apply(capture)
   local value = self:value(capture)
 
-  if value and self._hash[value] then
-    return self._allow
+  if value then
+    if self._nocase then
+      value = string.upper(value)
+    end
+    if self._hash[value] then
+      return self._allow
+    end
   end
 
   return not self._allow
