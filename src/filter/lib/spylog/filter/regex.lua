@@ -126,6 +126,7 @@ local capture_result = function(captures, result, cidr, rule_id, ...)
 
   local capture = captures[rule_id]
   result = result[rule_id]
+  result.date = nil
 
   for i = 1, #capture do
     local name = capture[i]
