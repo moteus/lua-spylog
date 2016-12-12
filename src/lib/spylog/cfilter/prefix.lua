@@ -8,9 +8,9 @@ local path       = require "path"
 local PrefixFilter = ut.class(BaseFilter) do
 
 function PrefixFilter:__init(filter)
-  local prefixes = assert(filter.prefix, 'capture filter with type `prefix` has no prefix list')
+  local prefixes = assert(filter.filter, 'capture filter with type `prefix` has no prefix list')
 
-  filter.value = filter.value or 'number'
+  filter.capture = filter.capture or 'number'
   self.__base.__init(self, filter)
 
   local tree

@@ -20,10 +20,10 @@ JAIL{"rdp-bad-user-access";
   bantime  = 1 * DAY + 10 * MINUTE + 28 * SECOND;
   action   = "ipsec";
   cfilter  = {"list",
-    type   = "allow",
-    value  = "user",
-    nocase = true,
-    list = {
+    type    = "allow",
+    capture = "user",
+    nocase  = true,
+    filter  = {
       "administrator";
       "guest";
       "user";

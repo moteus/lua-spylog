@@ -5,7 +5,7 @@ local BaseFilter = ut.class() do
 
 function BaseFilter:__init(filter)
   self._name  = filter[1]
-  self._vname = filter.value
+  self._vname = filter.capture
   self._allow = filter.type == 'allow'
   return self
 end

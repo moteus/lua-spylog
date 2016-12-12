@@ -110,42 +110,55 @@ JAIL{
 }
 ```
 
-#### Jail capture filters
-It is also possible add some additional filter to jails.
-E.g. we want count only attempt to call to some area codes.
-We can not do this on filter side because we can handle same
-log line with different jails. Each capture filter should have
-name as first element. Currently support `prefix`, `acl`, `regex`
-and `list` filters. 
-`prefix` filter should hanve `prefix` field with array of prefixes
-of file name. 
-`acl` filter should have `cidr` field with array of IP and/or CIDR.
-`regex` filter should have `regex` string/array of strings.
-`list` filter should have `list` array of strings.
+#### Capture filters
+It is also possible add some additional filter to `filters` and `jails`.
 
+Example 1. Add `black` list for user names for RDP service.
+```Lua
+JAIL{"rdp-bad-user-access"; -- e.g. can ban after first attempt
+  -- apply this jail only for specific user list
+  cfilter  = {"list",
+    type    = "allow",
+    capture = "user",
+    nocase  = true,
+    filter  = { "admin", "guest", "user", "root"};
+  };
+}
+```
+
+Example 2. Counts attempts to call only to some specific area codes.
 ```Lua
 JAIL{
   -- count only calls to Cuba and Albania and exclude '192.168.123.22' host
   cfilter = {
-    {'prefix',          -- filter type
-      type  = 'allow',  -- count if match
-      value = 'number', -- capture name to filter
-      prefix = {
+    {'prefix',            -- filter type
+      type    = 'allow',  -- count if match
+      capture = 'number', -- capture name to filter
+      filter = {          -- filter rules
         '53',  -- Cuba 
         '355', -- Albania
       }
     };
 
-    {'acl',            -- filter type
-      type  = 'deny',  -- count if not match
-      value = 'host',  -- capture name to filter
-      cidr = {
+    {'acl',              -- filter type
+      type    = 'deny',  -- count if not match
+      capture = 'host',  -- capture name to filter
+      filter  = {        -- filter rules
         '192.168.123.22',
       }
     };
   }
 }
 ```
+
+Each capture filter should have name as first element, `capture` and `filter` fields.
+Currently support `prefix`, `acl`, `regex` and `list` filters.
+`capture` field specify what value from capture should be used in this fileter.
+`filter` is set of rules had specific format for each type of filter.
+`prefix` filter should have `filter` field as array of prefixes of file name.
+`acl` filter should have `filter` field as array of IP and/or CIDR.
+`regex` filter should have `filter` field as string/array of strings.
+`list` filter should have `list` field as string/array of strings.
 
 
 ## Dependencies
