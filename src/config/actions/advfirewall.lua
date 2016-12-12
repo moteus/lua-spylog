@@ -7,7 +7,7 @@
 --
 -- You have to set `protocol` if you whant ban specific port.
 --
--- Example bun ports 5060 and 5080 for tcp and udp
+-- Example ban ports 5060 and 5080 for tcp and udp
 -- action = {
 --  {"advfirewall", {port = "5060,5080"; protocol = "udp"}};
 --  {"advfirewall", {port = "5060,5080"; protocol = "tcp"}};

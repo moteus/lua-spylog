@@ -23,10 +23,15 @@ FILTER{ "rdp-fail-access";
   source  = "eventlog:udp://127.0.0.1";
   exclude = WHITE_IP;
   events  = {'Security', {529, 4625}};
+  capture = {
+    {'user', 'host'};
+    {'user', 'host'};
+  };
   failregex = {
+    "User Name:%s+([^\r\n]+)" .. ".-" ..
     "Source Network Address:%s+([0-9.]+)";
     --cp1251
+    "Пользователь:%s+([^\r\n]+)" .. ".-" ..
     "Адрес сети источника:%s+([0-9.]+)";
-  }
+  };
 };
-
