@@ -8,11 +8,15 @@
 -- Stop action:
 --    netsh ipsec static delete policy name=Block
 ACTION{"ipsec",
-  ban   = 'netsh ipsec static add filter filterlist=BlockList srcaddr=<HOST> dstaddr=me description="<DATE> <FILTER> <JAIL> <BANTIME>"';
+  ban   = 'netsh ipsec static add filter filterlist=<FILTERLIST> srcaddr=<HOST> dstaddr=me description="<DATE> <FILTER> <JAIL> <BANTIME>"';
 
-  unban = 'netsh ipsec static delete filter filterlist=BlockList srcaddr=<HOST> dstaddr=me';
+  unban = 'netsh ipsec static delete filter filterlist=<FILTERLIST> srcaddr=<HOST> dstaddr=me';
 
   unique = "netsh ipsec <HOST>";
+
+  parameters = {
+    filterlist = 'BlockList'
+  };
 
   options = {
     timeout = 10000;
