@@ -6,12 +6,14 @@ local EOF = uv.error("LIBUV", uv.EOF);
 
 local AppendFileMonitor = ut.class() do
 
+local DEFAULT_BUFFER_SIZE = 4096
+
 function AppendFileMonitor:__init(opt)
   opt = opt or {}
   self._fname    = nil
   self._file     = nil
   self._event    = nil
-  self._buffer   = uv.buffer(1024)
+  self._buffer   = uv.buffer(opt.buffer_size or DEFAULT_BUFFER_SIZE)
   self._offset   = nil
   self._reading  = nil
   if opt.skeep == true or opt.skeep == nil then
@@ -59,7 +61,7 @@ function AppendFileMonitor:_on_read(file, err, buf, size)
 
   self:_do_read()
 
-  self._cb(self, nil, data, self._offset)
+  self:_cb(nil, data, self._offset)
 end
 
 function AppendFileMonitor:_on_open(err, file)
