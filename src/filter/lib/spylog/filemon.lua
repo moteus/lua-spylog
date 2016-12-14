@@ -107,9 +107,7 @@ function AppendFileMonitor:open(fname, cb)
 
   local started, timer = false
 
-  local function on_event(_, err, p, ev)
-    print(_, err, p, ev)
-
+  local function on_event(_, err, _, ev)
     -- At first we check either this call notify about FS event
 
     if ev == uv.RENAME then
