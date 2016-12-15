@@ -8,6 +8,8 @@ local AppendFileMonitor = ut.class() do
 
 local DEFAULT_BUFFER_SIZE = 4096
 
+local POLL_CREATE_FILE_INTERVAL = 5000
+
 function AppendFileMonitor:__init(opt)
   opt = opt or {}
   self._fname    = nil
@@ -16,6 +18,7 @@ function AppendFileMonitor:__init(opt)
   self._buffer   = uv.buffer(opt.buffer_size or DEFAULT_BUFFER_SIZE)
   self._offset   = nil
   self._reading  = nil
+  self._opening  = nil
   if opt.skeep == true or opt.skeep == nil then
     self._skeep = nil
   else
@@ -40,11 +43,17 @@ function AppendFileMonitor:_do_read()
   end
 end
 
-function AppendFileMonitor:_do_open(cb)
+function AppendFileMonitor:_do_open()
+  if self._opening then return end
+
+  self._opening = true
+
   if self._skeep then
     self._skeep = path.size(self._fname) or 0
   end
+
   uv.fs_open(self._fname, "r", function(file, err, path)
+    self._opening = false
     self:_on_open(err, file)
   end)
 end
@@ -52,7 +61,7 @@ end
 function AppendFileMonitor:_on_read(file, err, buf, size)
   self._reading = false
 
-  if err and err:name() ~= 'EOF' then self:_cb(err) end
+  if err and err:name() ~= 'EOF' then self:_on_error(err) end
 
   if err or size == 0 then return end
 
@@ -105,10 +114,31 @@ function AppendFileMonitor:open(fname, cb)
 
   self._event = uv.fs_event()
 
-  local started, timer = false
+  local timer
 
   local function on_event(_, err, _, ev)
-    -- At first we check either this call notify about FS event
+    -- This function may be called in case of error start.
+    -- E.g. if file does not exists we get `ENOENT` error.
+    if err then
+      -- If timer exists that means we still try do first successful start
+      if timer then
+        -- we have to call `stop` in other case we get `EINVAL`
+        -- when we call start again
+        self._event:stop()
+        timer:again(POLL_CREATE_FILE_INTERVAL)
+        if err:name() == 'ENOENT' then
+          self._skeep = false
+        end
+      end
+
+      -- ignore `ENOENT` if we do not start yet
+      if not (timer and err:name() == 'ENOENT') then
+        self:_on_error(err)
+      end
+      return
+    end
+
+    timer = nil
 
     if ev == uv.RENAME then
       return self:_on_rename()
@@ -119,32 +149,6 @@ function AppendFileMonitor:open(fname, cb)
       return
     end
 
-    -- This function also may be called in case of error start.
-    -- e.g. if file does not exists we get `ENOENT` error
-    -- If start is success there no any event until real 
-    -- FS events.
-    if not started then
-      -- we fail start monitor for file.
-      if err then
-        -- we have to call `stop` in other case we get `EINVAL`
-        -- when we call start again
-        self._event:stop()
-
-        -- ignore missing file
-        if err:name() ~= 'ENOENT' then
-          self:_on_error(err)
-        end
-
-        return timer:again(5000)
-      end
-
-      -- We get first event that means start is success
-      -- and we do not need call it again
-      timer:close()
-      started = true
-    end
-
-    -- assert(self._file == nil)
     if path.exists(fname) then
       return self:_do_open()
     end
