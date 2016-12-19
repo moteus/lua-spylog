@@ -7,16 +7,19 @@
 --    netsh ipsec static delete filter filterlist=SpyLogBlock srcaddr=192.168.192.100 dstaddr=Me
 -- Stop action:
 --    netsh ipsec static delete policy name=SpyLogBlock
+local args = 'filterlist=<FILTERLIST> srcaddr=<HOST> srcmask=<NET> protocol=<PROTOCOL> dstport=<PORT> dstaddr=me'
 ACTION{"ipsec",
-  ban   = 'netsh ipsec static add filter filterlist=<FILTERLIST> srcaddr=<HOST> srcmask=<NET> dstaddr=me description="<DATE> <FILTER> <JAIL> <BANTIME>"';
+  ban   = 'netsh ipsec static add filter ' .. args .. ' description="<DATE> <FILTER> <JAIL> <BANTIME>"';
 
-  unban = 'netsh ipsec static delete filter filterlist=<FILTERLIST> srcaddr=<HOST> srcmask=<NET> dstaddr=me';
+  unban = 'netsh ipsec static delete filter ' .. args;
 
-  unique = "netsh ipsec <HOST>";
+  unique = "netsh ipsec " .. args;
 
   parameters = {
     filterlist = 'SpyLogBlock';
     net        = '32';
+    protocol   = 'ANY';
+    port       = '0';
   };
 
   options = {
