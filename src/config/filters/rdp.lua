@@ -28,10 +28,20 @@ FILTER{ "rdp-fail-access";
     {'user', 'host'};
   };
   failregex = {
+    -- Event 529
     "User Name:%s+([^\r\n]+)" .. ".-" ..
     "Source Network Address:%s+([0-9.]+)";
     --cp1251
     "Пользователь:%s+([^\r\n]+)" .. ".-" ..
     "Адрес сети источника:%s+([0-9.]+)";
+
+    -- Event 4625
+    "Account For Which Logon Failed:" .. ".-" ..
+    "Account Name:%s+([^\r\n]+)" .. ".-" ..
+    "Source Network Address:%s+([0-9.]+)";
+    --cp1251
+    "Учетная запись, которой не удалось выполнить вход:" .. ".-" ..
+    "Имя учетной записи:%s+([^\r\n]+)" .. ".-" ..
+    "Сетевой адрес источника:%s+([0-9.]+)";
   };
 };
