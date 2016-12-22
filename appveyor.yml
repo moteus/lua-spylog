@@ -3,6 +3,9 @@ version: 0.0.1.{build}
 # Start builds on tags only (GitHub and BitBucket)
 skip_non_tags: true
 
+init:
+  - git config --global core.autocrlf true
+
 before_build:
   - choco install -y curl InnoSetup
   - set PATH="C:\Program Files\7-Zip";%PATH%
