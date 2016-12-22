@@ -22,8 +22,13 @@ FILTER{ "rdp-fail-access";
   enabled = false;
   source  = "eventlog:udp://127.0.0.1";
   exclude = WHITE_IP;
-  events  = {'Security', {529, 4625}};
+  events  = {
+    {'Security', {529, 4625}};
+    {'Microsoft-Windows-Security-Auditing', 4625};
+  };
   capture = {
+    {'user', 'host'};
+    {'user', 'host'};
     {'user', 'host'};
     {'user', 'host'};
   };
