@@ -35,8 +35,8 @@ FILTER{ "rdp-nxlog";
   exclude = WHITE_IP;
   hint = "EventID: 140;";
   failregex = {
-    "^EventID: 140; A connection from the client computer with an IP address of ([%d%.:]+)"
+    "^EventID: 140; A connection from the client computer with an IP address of ([%d%.:]+)";
     -- UTF8
-    "^EventID: 140; Не удалось подключить клиентский компьютер с IP%-адресом ([%d%.:]+)"
+    "^EventID: 140; Не удалось подключить клиентский компьютер с IP%-адресом ([%d%.:]+)";
   };
 };
