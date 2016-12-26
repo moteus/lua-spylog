@@ -28,7 +28,7 @@ function PrefixFilter:__init(filter)
       end
     end
   else -- load from file
-    local base_prefix_dir = path.join(config.CONFIG_DIR, 'config', 'jails')
+    local base_prefix_dir = path.join(config.CONFIG_DIR, 'data')
     local full_path = path.fullpath(path.isfullpath(prefixes) or path.join(base_prefix_dir, prefixes))
     log.debug('full path for prefix: %s', full_path)
     if not path.isfile(full_path) then

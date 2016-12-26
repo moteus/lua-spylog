@@ -1,6 +1,8 @@
 local Service = require "LuaService"
+local path    = require "path"
 
 local CONFIG_DIR = string.match(Service.PATH, "^(.-)[\\/][^\\/]+$")
+CONFIG_DIR = path.join(CONFIG_DIR, 'config')
 
 local WHITE_IP = {}
 
@@ -34,8 +36,6 @@ local function load_config(file, env)
 end
 
 local function load_configs(base)
-  local path = require "path"
-
   local function append(t, v)
     t[#t + 1] = v
   end
@@ -44,7 +44,7 @@ local function load_configs(base)
     return function(v) return append(t, v) end
   end
 
-  local main_config = path.join(base, "config", "spylog.lua")
+  local main_config = path.join(base, "spylog.lua")
 
   load_config(main_config, {
     LOG      = function(t) LOG      = t end;
@@ -74,7 +74,7 @@ local function load_configs(base)
   }
 
   for _,cfg in ipairs{'sources', 'filters', 'jails', 'actions'} do
-    path.each(path.join(base, "config", cfg, "*.lua"), "f", function(fname)
+    path.each(path.join(base, cfg, "*.lua"), "f", function(fname)
       load_config(fname, env)
     end, {recurse=true})
   end
