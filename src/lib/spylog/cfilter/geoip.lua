@@ -55,8 +55,16 @@ end
 local function find_country(self, host)
   local ret = self._cache[host]
   if ret then return ret end
-  --! @todo support IPv6
-  ret = self._mmdb:search_ipv4(host)
+
+  local ok
+  if string.find(host, ':', nil, true) then
+    ok, ret = pcall(self._mmdb.search_ipv6, self._mmdb, host)
+  else
+    ok, ret = pcall(self._mmdb.search_ipv4, self._mmdb, host)
+  end
+
+  if not ok then return nil, ret end
+
   ret = ret and ret.country and ret.country.iso_code or "--"
   self._cache[host] = ret
   return ret
@@ -66,9 +74,13 @@ function GeoIPFilter:apply(capture)
   local value = self:value(capture)
 
   if value then
-    value = find_country(self, value)
-
-    if value and self._hash[value] then
+    local info, err = find_country(self, value)
+    if err then
+      log.warning("error while search IP: `%s` - %s", value, err)
+      -- deny in any case
+      return false
+    end
+    if info and self._hash[info] then
       return self._allow
     end
   end
