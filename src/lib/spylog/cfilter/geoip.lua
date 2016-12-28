@@ -34,7 +34,7 @@ local function find_with_cache(self, host)
   local ret, err = self._cache:get(host)
   if ret then return ret end
   ret, err = find(self, host)
-  self._cache[host] = ret
+  self._cache:set(host, ret)
 
   return ret
 end
