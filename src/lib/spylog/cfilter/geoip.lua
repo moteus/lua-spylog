@@ -14,7 +14,7 @@ local geodb_cache = {}
 
 local GeoIPFilter = ut.class(BaseFilter) do
 
-local dummy = { country = { iso_code = "--" } }
+local dummy = { country = { iso_code = "--" }, continent = { code = "--" } }
 
 local function find(self, host)
   local ok, ret
@@ -66,12 +66,24 @@ function GeoIPFilter:__init(filter)
     error("can not open database file: " .. db_full_path .. "; " .. err)
   end
 
-  local hash = {} for i = 1, #list do
+  local country = {} for i = 1, #list do
     local value = string.upper(list[i])
-    hash[ value ] = true
+    country[ value ] = true
   end
 
-  self._hash  = hash
+  local continent = {}
+  if list.continent then 
+    if type(list.continent) == 'string' then
+      list.continent = {list.continent}
+    end
+
+    for i = 1, #list.continent do
+      local value = string.upper(list.continent[i])
+      continent[ value ] = true
+    end
+  end
+
+  self._hash  = {continent = continent, country = country}
   self._mmdb  = db
 
   if filter.cache then
@@ -95,7 +107,6 @@ function GeoIPFilter:__init(filter)
   return self
 end
 
-
 function GeoIPFilter:apply(capture)
   local value = self:value(capture)
 
@@ -107,7 +118,11 @@ function GeoIPFilter:apply(capture)
       return false
     end
     local country = info and info.country and info.country.iso_code
-    if country and self._hash[country] then
+    if country and self._hash.country[country] then
+      return self._allow
+    end
+    local continent = info and info.continent and info.continent.code
+    if continent and self._hash.continent[continent] then
       return self._allow
     end
   end

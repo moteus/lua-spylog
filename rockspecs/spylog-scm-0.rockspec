@@ -36,6 +36,8 @@ dependencies = {
   "prefix_tree",
   "gntp",
   "sqlite3",
+  "mmdblua",
+  "lua-lru",
 
   -- need install before by hand
   "lua-cjson",          -- custom rockspec on windows/msvc
