@@ -3,15 +3,44 @@ local ut         = require "lluv.utils"
 local config     = require "spylog.config"
 local BaseFilter = require "spylog.cfilter.base"
 local path       = require "path"
+local mmdb       = require "mmdb"
+local lru do local ok
+ok, lru = pcall(require, "lru")
+if not ok then lru = nil end
+end
 
-local geodb, mmdb = {}
+local geodb = {}
+local geodb_cache = {}
 
 local GeoIPFilter = ut.class(BaseFilter) do
 
+local dummy = { country = { iso_code = "--" } }
+
+local function find(self, host)
+  local ok, ret
+
+  if string.find(host, ':', nil, true) then
+    ok, ret = pcall(self._mmdb.search_ipv6, self._mmdb, host)
+  else
+    ok, ret = pcall(self._mmdb.search_ipv4, self._mmdb, host)
+  end
+
+  if not ok then return nil, ret end
+
+  return ret or dummy
+end
+
+local function find_with_cache(self, host)
+  local ret, err = self._cache:get(host)
+  if ret then return ret end
+  ret, err = find(self, host)
+  self._cache[host] = ret
+
+  return ret
+end
+
 function GeoIPFilter:__init(filter)
   log.warning("geoip capture filter is still in experemental stage")
-
-  mmdb = mmdb or require "mmdb"
 
   if type(filter.filter) == 'string' then
     filter.filter = {filter.filter}
@@ -44,7 +73,21 @@ function GeoIPFilter:__init(filter)
 
   self._hash  = hash
   self._mmdb  = db
-  self._cache = setmetatable({}, {__mode = "v"})
+
+  if filter.cache then
+    if not lru then
+      log.warning('can not use cache for geoip module. Please install `lua-lru` module.')
+    else
+      assert(type(filter.cache) == 'number', 'cache elment for geoip filter should be a number')
+      local t = geodb_cache[db_full_path] or {}
+      geodb_cache[db_full_path] = t
+      local cache = t[filter.cache] or lru.new(filter.cache)
+      t[filter.cache] = cache
+      self._cache = cache
+    end
+  end
+
+  self._find = self._cache and find_with_cache or find
 
   filter.capture = filter.capture or 'host'
   self.__base.__init(self, filter)
@@ -52,35 +95,19 @@ function GeoIPFilter:__init(filter)
   return self
 end
 
-local function find_country(self, host)
-  local ret = self._cache[host]
-  if ret then return ret end
-
-  local ok
-  if string.find(host, ':', nil, true) then
-    ok, ret = pcall(self._mmdb.search_ipv6, self._mmdb, host)
-  else
-    ok, ret = pcall(self._mmdb.search_ipv4, self._mmdb, host)
-  end
-
-  if not ok then return nil, ret end
-
-  ret = ret and ret.country and ret.country.iso_code or "--"
-  self._cache[host] = ret
-  return ret
-end
 
 function GeoIPFilter:apply(capture)
   local value = self:value(capture)
 
   if value then
-    local info, err = find_country(self, value)
+    local info, err = self:_find(value)
     if err then
       log.warning("error while search IP: `%s` - %s", value, err)
       -- deny in any case
       return false
     end
-    if info and self._hash[info] then
+    local country = info and info.country and info.country.iso_code
+    if country and self._hash[country] then
       return self._allow
     end
   end
