@@ -155,8 +155,19 @@ JAIL{
 }
 ```
 
+Example 3. Apply jail to some countries only.
+```Lua
+JAIL{"rdp-bad-country-access"; -- e.g. can ban after first attempt
+  -- apply this jail for all counties except Russia and North America
+  cfilter  = {"geoip",
+    type    = "deny",
+    filter  = { 'ru', continent = {'na'} };
+  };
+}
+```
+
 Each capture filter should have name as first element, `capture` and `filter` fields.
-Currently support `prefix`, `acl`, `regex` and `list` filters.
+Currently support `prefix`, `acl`, `regex`, `list` and `geoip` filters.
 `capture` field specify what value from capture should be used in this fileter.
 `filter` is set of rules had specific format for each type of filter.
 `prefix` filter should have `filter` field as array of prefixes of file name.
@@ -196,3 +207,8 @@ Currently support `prefix`, `acl`, `regex` and `list` filters.
 
 ### To support `prefix` capture filter
  - [prefix_tree](https://luarocks.org/modules/moteus/prefix_tree)
+
+### To support `geoip` capture filter
+ - [mmdblua](https://luarocks.org/modules/daurnimator/mmdblua)
+ - [compat53](https://luarocks.org/modules/siffiejoe/compat53)
+ - [lua-lru](https://luarocks.org/modules/starius/lua-lru) (optional)
