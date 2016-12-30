@@ -331,7 +331,7 @@ function JailCounter:new(jail)
   o._accumulate = jail.counter and jail.counter.type == 'accumulate'
   o._fixed      = jail.counter and jail.counter.type == 'fixed'
   o._value      = jail.counter and jail.counter.value or 'value'
-  o._banwhat    = jail.counter and jail.counter.banwhat or 'host'
+  o._banwhat    = jail.counter and jail.counter.capture or 'host'
 
   if not o._fixed then
     local resolution = jail.counter and jail.counter.resolution

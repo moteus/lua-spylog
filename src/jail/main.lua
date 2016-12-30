@@ -215,7 +215,7 @@ local function create_counter(jail)
 end
 
 local function check_jail(jail, capture)
-  local banwhat = jail.banwhat or 'host'
+  local banwhat = jail.counter and jail.counter.capture or 'host'
   if not capture[banwhat] then
     log.error('filter `%s` does not provide `%s` capture', capture.filter, banwhat)
     return

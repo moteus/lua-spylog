@@ -88,28 +88,30 @@ Filters support `exclude` array which allows exclude some IP and networks.
 ### Jails
 Each jail is just array of counters with some expire time.
 
-#### Jail control value
-Each jail support counter for some value. By default it is `host`.
-But in some case it may be need support counter for some other value.
-E.g. in voip system it may be need monitor each account. To specify
-this value uses `banwhat` field. (`banwhat = 'user'`)
-
 #### Counter types
 Currently supports this counter types
 
  * `incremental` increment to one for each filter message
  * `accumulate` get increment value from filter message.
    Can be used e.g. to calculate total calls duration in some VOIP system.
- * `fixed` just return value from filter.
+ * `fixed` just return value from filter message.
+   Can be used e.g. to monitor max call duration for calls in some VOIP system.
 
 By default `increment` type uses.
+
+#### Counter control values
+Each counter do count for some value (like `counter[id] = counter[id] + value`).
+To specify `id` field you can use `capture` field. By default it is `host`.
+To specify `value` you can use `value` field. There no default value for this.
+E.g. in voip system it may be need monitor each account and block them .
 
 ```Lua
 JAIL{
   ...
   counter  = {
-    type  = 'accumulate';
-    value = 'duration'; -- what value use to increment.
+    type    = 'accumulate';
+    capture = 'account'; -- count total duration for each account
+    value   = 'duration'; -- what value use to increment.
   };
 }
 ```
