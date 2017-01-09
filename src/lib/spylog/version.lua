@@ -3,8 +3,8 @@
 -- !!! Do not define more than one value per line
 return {
   _NAME      = 'SpyLog';
-  _VERSION   = '0.0.1-rc.3';
-  _COPYRIGHT = 'Copyright (C) 2015-2016 Alexey Melnichuk';
+  _VERSION   = '0.0.1-rc.4';
+  _COPYRIGHT = 'Copyright (C) 2015-2017 Alexey Melnichuk';
   _URL       = 'https://github.com/moteus/lua-spylog';
   _LICENSE   = 'MIT';
 }
