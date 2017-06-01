@@ -18,6 +18,31 @@
 -- 6.1 Go to Computer / Windows Settings / Security Settings / Local Policies / Audit Policy
 -- 6.2 Set `Audit account logon`  events = Success, Failure
 
+local capture = {
+  {'user', 'host'};
+  {'user', 'host'};
+  {'user', 'host'};
+  {'user', 'host'};
+}
+
+local regex = {
+  -- Event 529
+  "User Name:%s+([^\r\n]+)" .. ".-" ..
+  "Source Network Address:%s+([0-9.]+)";
+  --cp1251
+  "Пользователь:%s+([^\r\n]+)" .. ".-" ..
+  "Адрес сети источника:%s+([0-9.]+)";
+
+  -- Event 4625
+  "Account For Which Logon Failed:" .. ".-" ..
+  "Account Name:%s+([^\r\n]+)" .. ".-" ..
+  "Source Network Address:%s+([0-9.]+)";
+  --cp1251
+  "Учетная запись, которой не удалось выполнить вход:" .. ".-" ..
+  "Имя учетной записи:%s+([^\r\n]+)" .. ".-" ..
+  "Сетевой адрес источника:%s+([0-9.]+)";
+};
+
 FILTER{ "rdp-fail-access";
   enabled = false;
   source  = "eventlog:udp://127.0.0.1";
@@ -26,27 +51,16 @@ FILTER{ "rdp-fail-access";
     {'Security', {529, 4625}};
     {'Microsoft-Windows-Security-Auditing', 4625};
   };
-  capture = {
-    {'user', 'host'};
-    {'user', 'host'};
-    {'user', 'host'};
-    {'user', 'host'};
-  };
-  failregex = {
-    -- Event 529
-    "User Name:%s+([^\r\n]+)" .. ".-" ..
-    "Source Network Address:%s+([0-9.]+)";
-    --cp1251
-    "Пользователь:%s+([^\r\n]+)" .. ".-" ..
-    "Адрес сети источника:%s+([0-9.]+)";
+  capture = capture;
+  failregex = regex;
+};
 
-    -- Event 4625
-    "Account For Which Logon Failed:" .. ".-" ..
-    "Account Name:%s+([^\r\n]+)" .. ".-" ..
-    "Source Network Address:%s+([0-9.]+)";
-    --cp1251
-    "Учетная запись, которой не удалось выполнить вход:" .. ".-" ..
-    "Имя учетной записи:%s+([^\r\n]+)" .. ".-" ..
-    "Сетевой адрес источника:%s+([0-9.]+)";
-  };
+FILTER{ "rdp-fail-access-nxlog";
+  enabled = false;
+  source = "nxlog";
+  exclude = WHITE_IP;
+  -- hint = "EventID: 529;";
+  -- hint = "EventID: 4625;";
+  capture = capture;
+  failregex = regex;
 };

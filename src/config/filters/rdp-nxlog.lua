@@ -29,9 +29,9 @@
 --   Path        eventlog => spylog
 -- </Route>
 --
-FILTER{ "rdp-nxlog";
+FILTER{ "rdp-fail-access-140-nxlog";
   enabled = false;
-  source = "net:udp://127.0.0.1:614";
+  source = "nxlog";
   exclude = WHITE_IP;
   hint = "EventID: 140;";
   failregex = {

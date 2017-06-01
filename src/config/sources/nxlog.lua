@@ -1,0 +1,66 @@
+-- Forward logs using nxlog (http://nxlog.co)
+ 
+SOURCE{ "nxlog",
+  "net:udp://127.0.0.1:614",
+}
+
+-- Counfigure NXLog to forward logs from system EventLog.
+--
+-- 1. Output module
+--
+-- <Output spylog>
+--   Module      om_udp
+--   Host        127.0.0.1
+--   Port        614
+--   Exec        $raw_event = "EventID: " + $EventID + "; " + $Message;
+-- </Output>
+--
+-- 2. Configure soureces
+--
+-- 2.1 On Win2k3 configure Auth fail events
+--
+-- <Input winlogon>
+--   Module       im_mseventlog
+--   Sources      Security
+--   SavePos      TRUE
+--   ReadFromLast TRUE
+--   Exec         if $EventID NOT IN (529, 4625) drop();
+-- </Input>
+--
+-- 2.2 On Win2k3 configure PHP log events
+-- 
+-- <Input phplog>
+--   Module       im_mseventlog
+--   Sources      Application
+--   SavePos      TRUE
+--   ReadFromLast TRUE
+--   Exec         if $EventID != 3 drop();
+--   Exec         if $SourceName !~ /^PHP/ drop();
+-- </Input>
+--
+-- 2.3 on Win >= Vista configure access log
+-- When use NTLM auth event 4625 has no IP address
+--
+-- <Input winlogon>
+--   Module       im_msvistalog
+--   SavePos      TRUE
+--   ReadFromLast TRUE
+--   Channel      "Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational"
+--   <QueryXML>
+--     <QueryList>
+--       <Query Id="0" Path="Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational">
+--         <Select Path="Microsoft-Windows-RemoteDesktopServices-RdpCoreTS/Operational">*[System[(EventID=140)]]</Select>
+--       </Query>
+--     </QueryList>
+--   </QueryXML>
+-- </Input>
+-- 
+-- 3. Configure route
+--
+-- <Route 1>
+--   Path        winlogon => spylog
+-- </Route>
+-- 
+-- <Route 2>
+--   Path        phplog => spylog
+-- </Route>
