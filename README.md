@@ -59,6 +59,7 @@ JAIL{"voip-auth-fail";
 
 ### Supported sources
  * Text log file
+ * UDP raw server
  * SysLog UDP server (rfc3164 and rfc5424)
  * SNMP trap UDP server (allows handle Windows event logs)
  * EventLog (based on event trap) allows additional filters based on source names.
