@@ -14,114 +14,176 @@ set SpyLogActionName=SpyLogBlock
 set SpyLogPolicyName=SpyLogBlock
 set SpyLogFilterName=SpyLogBlock
 
-if not "%1"=="install" if not "%1"=="uninstall" (
-if not "%1"=="add-filter" if not "%1"=="remove-filter" if not "%1"=="list-filter" if not "%1"=="clean-filter" (
-if not "%1"=="add-host" if not "%1"=="remove-host" (
-goto :usage
-)))
+if "%1"=="" goto :usage
+if "%1"=="-help" goto :usage
 
-:: what need to do (install, uninstall, add-filter, remove-filter)
-SET action=%1
+if not "%1"=="install" if not "%1"=="uninstall" if not "%1"=="filter" if not "%1"=="host" (
+  echo ERROR: Unknown action/object: %1
+  goto :usage
+)
+
+:: what need to do (install, uninstall, filter, host)
+SET object=%1
 SET policy=
 SET filter=
 SET host=
+SET port=
+SET protocol=
+SET mask=
 SET skip_policy=false
 SET skip_filter=false
 SHIFT
 
-if "%action%" == "add-filter"    goto :filter_args
-if "%action%" == "remove-filter" goto :filter_args
-if "%action%" == "list-filter"   goto :filter_args
-if "%action%" == "clean-filter"  goto :filter_args
-
-if "%action%" == "add-host"      goto :filter_ip_args
-if "%action%" == "remove-host"   goto :filter_ip_args
+if "%object%" == "filter"    goto :filter_args
+if "%object%" == "host"      goto :filter_ip_args
 
 ::---------------------------------------------------------
-:: decode args for install
+:: decode args for install/uninstall
 ::---------------------------------------------------------
 :install_args
 IF NOT "%1"=="" (
   IF "%1"=="-policy" (
     SET policy=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :install_args
   )
   IF "%1"=="-filter" (
     SET filter=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :install_args
   )
   IF "%1"=="-skip-policy" (
     SET skip_policy=true
+    SHIFT
+    GOTO :install_args
   )
   IF "%1"=="-skip-filter" (
     SET skip_filter=true
+    SHIFT
+    GOTO :install_args
   )
-  SHIFT
-  GOTO :install_args
+  echo ERROR: Unknown key for %object% command: %1
+  goto :usage
 )
 
-if "%action%" == "install"       goto :install
-if "%action%" == "uninstall"     goto :uninstall
+if "%object%" == "install"       goto :install
+if "%object%" == "uninstall"     goto :uninstall
 
 ::---------------------------------------------------------
-:: decode args for add/remove filter
+:: decode args for manage filter
 ::---------------------------------------------------------
 :filter_args
+if not "%1"=="add" if not "%1"=="remove" if not "%1"=="list" if not "%1"=="clean" (
+  echo ERROR: Unknown action for filter object: %1
+  goto :usage
+)
+SET action=%1
+SHIFT
+
 SET filter=%1
 if "%filter:~0,1%"=="-" (
   SET filter=
+)
+if not "%filter%"=="" (
+  SHIFT
 )
 
 :filter_args_loop
 IF NOT "%1"=="" (
   IF "%1"=="-policy" (
     SET policy=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :filter_args_loop
   )
   IF "%1"=="-filter" (
     SET filter=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :filter_args_loop
   )
-  SHIFT
-  GOTO :filter_args_loop
+  echo ERROR: Unknown key for filter command: %1
+  goto :usage
 )
 
-if "%action%" == "add-filter"    goto :add_filter
-if "%action%" == "remove-filter" goto :remove_filter
-if "%action%" == "list-filter"   goto :list_filter
-if "%action%" == "clean-filter"  goto :clean_filter
+if "%action%" == "add"    goto :add_filter
+if "%action%" == "remove" goto :remove_filter
+if "%action%" == "list"   goto :list_filter
+if "%action%" == "clean"  goto :clean_filter
 
 ::---------------------------------------------------------
 :: decode args for add/remove ip to filter
 ::---------------------------------------------------------
 :filter_ip_args
+if not "%1"=="add" if not "%1"=="remove" (
+  echo ERROR: Unknown action for host object: %1
+  goto :usage
+)
+SET action=%1
+SHIFT
+
 SET host=%1
-if "%filter:~0,1%"=="-" (
+if "%host:~0,1%"=="-" (
   SET host=
 )
+if not "%host%"=="" (
+  SHIFT
+)
+
 
 :filter_ip_args_loop
 IF NOT "%1"=="" (
   IF "%1"=="-host" (
     SET host=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :filter_ip_args_loop
   )
   IF "%1"=="-filter" (
     SET filter=%2
-    SHIFT
+    SHIFT && SHIFT
+    GOTO :filter_ip_args_loop
   )
-  SHIFT
-  GOTO :filter_ip_args_loop
+  IF "%1"=="-protocol" (
+    SET protocol=%2
+    SHIFT && SHIFT
+    GOTO :filter_ip_args_loop
+  )
+  IF "%1"=="-port" (
+    SET port=%2
+    SHIFT && SHIFT
+    GOTO :filter_ip_args_loop
+  )
+  IF "%1"=="-mask" (
+    SET mask=%2
+    SHIFT && SHIFT
+    GOTO :filter_ip_args_loop
+  )
+  echo ERROR: Unknown key for host command: %1
+  goto :usage
 )
 
-if "%action%" == "add-host"      goto :add_filter_ip
-if "%action%" == "remove-host"   goto :remove_filter_ip
+:: if you whant use port then you have to define protocol
+if not "%port%"=="" if "%protocol%"=="" (
+  echo ERROR: no protocol, but port defined
+  goto :usage
+)
+
+:: if you define protocol you can set port to `0` that means any
+if "%port%"=="" if not "%protocol%"=="" (
+  SET port=0
+)
+
+:: only this host
+if "%mask%"=="" (
+  SET mask=32
+)
+
+if "%action%" == "add"      goto :add_filter_ip
+if "%action%" == "remove"   goto :remove_filter_ip
 
 :usage
 echo ipsecspylog install^|uninstall [-skip-policy] [-skip-filter]
-echo ipsecspylog add-filter^|remove-filter [[-filter] ^<filter^>] [-policy ^<policy^>]
-echo ipsecspylog list-filter^|clean-filter [[-filter] ^<filter^>]
-echo ipsecspylog add-host^|remove-host [[-host] ^<host^>] [-filter ^<filter^>]
+echo ipsecspylog filter add^|remove [[-filter] ^<filter^>] [-policy ^<policy^>]
+echo ipsecspylog filter list^|clean [[-filter] ^<filter^>]
+echo ipsecspylog host add^|remove [[-host] ^<host^>] [-mask ^<protocol^>] [-protocol ^<protocol^> [-port ^<port^>]] [-filter ^<filter^>]
 
 goto :eof
 
@@ -161,16 +223,27 @@ call:ListFilter %filter%
 goto :eof
 
 :add_filter_ip
-call:AddFilterIP %host% %filter%
+if "%port%"=="" (
+  call:AddFilterIP %host% %mask% %filter%
+)
+if not "%port%"=="" (
+  call:AddFilterIPPort %host% %mask% %protocol% %port% %filter%
+)
 
 goto :eof
 
 :remove_filter_ip
-call:RemoveFilterIP %host% %filter%
+if "%port%"=="" (
+  call:RemoveFilterIP %host% %mask% %filter%
+)
+if not "%port%"=="" (
+  call:RemoveFilterIPPort %host% %mask% %protocol% %port% %filter%
+)
 
 goto :eof
 
 endlocal
+
 
 :CreateAction
 setlocal
@@ -256,20 +329,47 @@ goto :eof
 :AddFilterIP
 setlocal
   set host=%~1
-  set filter=%~2
+  set mask=%~2
+  set filter=%~3
   if "%filter%" == "" set filter=%SpyLogFilterName%
 
-  netsh ipsec static add filter filterlist=%filter% srcaddr=%host% srcmask=32 dstaddr=me
+  netsh ipsec static add filter filterlist=%filter% srcaddr=%host% srcmask=%mask% dstaddr=me
 endlocal
 goto :eof
 
+:AddFilterIPPort
+setlocal
+  set host=%~1
+  set mask=%~2
+  set protocol=%~3
+  set port=%~4
+  set filter=%~5
+  if "%filter%" == "" set filter=%SpyLogFilterName%
+
+  netsh ipsec static add filter filterlist=%filter% srcaddr=%host% srcmask=%mask% protocol=%protocol% dstport=%port% dstaddr=me
+endlocal
+goto :eof
 
 :RemoveFilterIP
 setlocal
   set host=%~1
-  set filter=%~2
+  set mask=%~2
+  set filter=%~3
   if "%filter%" == "" set filter=%SpyLogFilterName%
 
-  netsh ipsec static delete filter filterlist=%filter% srcaddr=%host% srcmask=32 dstaddr=me
+  netsh ipsec static delete filter filterlist=%filter% srcaddr=%host% srcmask=%mask% dstaddr=me
+endlocal
+goto :eof
+
+:RemoveFilterIPPort
+setlocal
+  set host=%~1
+  set mask=%~2
+  set protocol=%~3
+  set port=%~4
+  set filter=%~5
+  if "%filter%" == "" set filter=%SpyLogFilterName%
+
+  netsh ipsec static add filter filterlist=%filter% srcaddr=%host% srcmask=%mask% protocol=%protocol% dstport=%port% dstaddr=me
 endlocal
 goto :eof
