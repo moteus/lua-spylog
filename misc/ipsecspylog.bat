@@ -183,7 +183,7 @@ if "%action%" == "remove"   goto :remove_filter_ip
 echo ipsecspylog install^|uninstall [-skip-policy] [-skip-filter]
 echo ipsecspylog filter add^|remove [[-filter] ^<filter^>] [-policy ^<policy^>]
 echo ipsecspylog filter list^|clean [[-filter] ^<filter^>]
-echo ipsecspylog host add^|remove [[-host] ^<host^>] [-mask ^<protocol^>] [-protocol ^<protocol^> [-port ^<port^>]] [-filter ^<filter^>]
+echo ipsecspylog host add^|remove [[-host] ^<host^>] [-mask ^<net^|mask^>] [-protocol ^<protocol^> [-port ^<port^>]] [-filter ^<filter^>]
 
 goto :eof
 
