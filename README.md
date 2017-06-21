@@ -195,6 +195,7 @@ Currently support `prefix`, `acl`, `regex`, `list` and `geoip` filters.
  - [luuid](https://luarocks.org/modules/luarocks/luuid)
  - [lzmq](https://luarocks.org/modules/moteus/lzmq)
  - [StackTracePlus](https://luarocks.org/modules/ignacio/stacktraceplus)
+ - [LuaService](https://luarocks.org/modules/moteus/luaservice)
 
 ### To support `mail` action
  - [lluv-ssl](https://luarocks.org/modules/moteus/lluv-ssl)
