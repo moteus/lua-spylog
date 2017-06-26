@@ -18,6 +18,10 @@ local var           = require "spylog.var"
 local path          = require "path"
 local CaptureFilter = require "spylog.cfilter"
 
+local function rndint(v)
+  return math.random(0, v)
+end
+
 log.info('Starting %s version %s. %s', version._NAME, version._VERSION, version._COPYRIGHT)
 
 local DEFAULT = config.JAIL and config.JAIL.default or {}
@@ -86,6 +90,9 @@ local function action(jail, filter, value)
   filter.jail    = jail.name
   filter.bantime = jail.bantime
   filter.counter = value
+  if jail.rndtime then
+    filter.bantime = filter.bantime + rndint(jail.rndtime)
+  end
 
   -- build jail parameters
   local parameters
