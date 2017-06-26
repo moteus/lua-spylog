@@ -7,11 +7,13 @@ local path       = require "path"
 
 local PrefixFilter = ut.class(BaseFilter) do
 
+local Class = PrefixFilter
+
 function PrefixFilter:__init(filter)
   local prefixes = assert(filter.filter, 'capture filter with type `prefix` has no prefix list')
 
   filter.capture = filter.capture or 'number'
-  self.__base.__init(self, filter)
+  Class.__base.__init(self, filter)
 
   local tree
 

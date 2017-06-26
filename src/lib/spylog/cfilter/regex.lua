@@ -36,6 +36,8 @@ local ENGINES = {
 
 local RegexFilter = ut.class(BaseFilter) do
 
+local Class = RegexFilter
+
 function RegexFilter:__init(filter)
   if type(filter.filter) == 'string' then
     filter.filter = {filter.filter}
@@ -45,7 +47,7 @@ function RegexFilter:__init(filter)
   assert(type(regexes) == 'table', 'capture filter with type `regex` has no regex list')
   assert(filter.capture, 'capture filter with type `regex` has no capture name')
 
-  self.__base.__init(self, filter)
+  Class.__base.__init(self, filter)
 
   local engine = filter.engine or 'default'
 

@@ -14,6 +14,8 @@ local geodb_cache = {}
 
 local GeoIPFilter = ut.class(BaseFilter) do
 
+local Class = GeoIPFilter
+
 local dummy = { country = { iso_code = "--" }, continent = { code = "--" } }
 
 local function find(self, host)
@@ -102,7 +104,7 @@ function GeoIPFilter:__init(filter)
   self._find = self._cache and find_with_cache or find
 
   filter.capture = filter.capture or 'host'
-  self.__base.__init(self, filter)
+  Class.__base.__init(self, filter)
 
   return self
 end

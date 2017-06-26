@@ -3,6 +3,8 @@ local BaseFilter = require "spylog.cfilter.base"
 
 local ListFilter = ut.class(BaseFilter) do
 
+local Class = ListFilter
+
 function ListFilter:__init(filter)
   if type(filter.filter) == 'string' then
     filter.filter = {filter.filter}
@@ -12,7 +14,7 @@ function ListFilter:__init(filter)
   assert(type(list) == 'table', 'capture filter with type `list` has no list of values')
   assert(filter.capture, 'capture filter with type `list` has no capture name')
 
-  self.__base.__init(self, filter)
+  Class.__base.__init(self, filter)
 
   self._nocase = not not filter.nocase
 

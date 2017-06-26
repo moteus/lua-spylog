@@ -5,6 +5,8 @@ local iputil     = require "spylog.iputil"
 
 local AclFilter = ut.class(BaseFilter) do
 
+local Class = AclFilter
+
 function AclFilter:__init(filter)
   if type(filter.filter) == 'string' then
     filter.filter = {filter.filter}
@@ -14,7 +16,7 @@ function AclFilter:__init(filter)
   assert(type(cidr) == 'table', 'capture filter with type `acl` has no cidr list')
 
   filter.capture = filter.capture or 'host'
-  self.__base.__init(self, filter)
+  Class.__base.__init(self, filter)
 
   self._cidr = iputil.load_cidrs(cidr)
 
