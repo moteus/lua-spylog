@@ -99,17 +99,18 @@ local function P(read, write, pipe)
   }
 end
 
-local function spawn(file, args, timeout, cb)
-  local stdout = P(false, true)
-  local stderr = P(false, true)
+local function spawn_ex(file, args, env, timeout, on_management, on_stdout, on_stderr)
+  local stdout = on_stdout and P(false, true) or {}
+  local stderr = on_stderr and P(false, true) or {}
 
   if type(args) == 'string' then
     args = {args}
   end
 
   local opt = {
-    file = file,
-    args = args or {},
+    file  = file,
+    args  = args or {},
+    env   = env,
     stdio = {{}, stdout, stderr},
   }
 
@@ -122,10 +123,19 @@ local function spawn(file, args, timeout, cb)
       timer = nil
     end
 
-    cb('exit', err, status, signal)
+    if stdout.stream then stdout.stream:close() stdout.stream = nil end
+    if stderr.stream then stderr.stream:close() stderr.stream = nil end
+
+    on_management('exit', err, status, signal)
   end)
 
-  if proc and timeout then
+  if not proc then
+    if stdout.stream then stdout.stream:close() stdout.stream = nil end
+    if stderr.stream then stderr.stream:close() stderr.stream = nil end
+    return nil, pid
+  end
+
+  if timeout then
     timer = uv.timer():start(timeout, function()
       timer:close()
       timer = nil
@@ -133,16 +143,27 @@ local function spawn(file, args, timeout, cb)
     end)
   end
 
-  local function on_data(self, err, data)
-    local typ = (self == stdout) and 'stdout' or 'stderr'
+  local function on_data(cb) return function(self, err, data)
+    if not err then return cb(data) end
+
+    local typ = (self == stdout.stream) and 'stdout' or 'stderr'
     if err and err:name() == 'EOF' then
       return
     end
-    cb(typ, err, data)
-  end
+    on_management(typ, err, data)
+  end end
 
-  stdout.stream:start_read(on_data)
-  stderr.stream:start_read(on_data)
+  if on_stdout then stdout.stream:start_read(on_data(on_stdout)) end
+  if on_stderr then stderr.stream:start_read(on_data(on_stderr)) end
+
+  return proc
+end
+
+local function spawn(file, args, timeout, cb)
+  return spawn_ex(file, args, nil, timeout, cb,
+    function(data) cb('stdout', nil, data) end,
+    function(data) cb('stderr', nil, data) end
+  )
 end
 
 local function pipe(commands, timeout, cb)
@@ -252,7 +273,8 @@ local function chain(commands, timeout, cb)
 end
 
 return setmetatable({
-  estatus = StatusError.new;
-  pipe  = pipe;
-  chain = chain;
+  estatus  = StatusError.new;
+  pipe     = pipe;
+  chain    = chain;
+  spawn_ex = spawn_ex;
 },{__call = function(_, ...) return spawn(...) end})
