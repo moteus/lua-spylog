@@ -65,6 +65,10 @@ function Source:__init(source)
   self._type    = source_type
   self._info    = source_info
   self._opt     = source_opt
+  if self._opt then
+    self._opt.__name = source_name
+    self._opt.__type = source_type
+  end
   self._filters = {}
 
   return self

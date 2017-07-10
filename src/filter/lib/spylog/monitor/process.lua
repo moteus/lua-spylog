@@ -43,7 +43,7 @@ local function process_monitor(cmd, opt, cb)
 
   cmd = path.normalize(cmd)
 
-  local source_name = opt[1] or (cmd and path.basename(cmd)) or 'unknown'
+  local source_name = opt.__name or (cmd and path.basename(cmd)) or 'unknown'
   local log_header = '[' .. proto .. ']' ..'[' .. source_name .. ']'
 
   if tail and #tail > 0 then
