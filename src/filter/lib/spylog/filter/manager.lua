@@ -26,7 +26,9 @@ end
 
 -- @static
 function Source.decode_source(source)
+  local source_name
   if type(source) == 'string' then
+    source_name = config.SOURCES and config.SOURCES[source] and source
     source = config.SOURCES and config.SOURCES[source] or source
   end
 
@@ -44,14 +46,21 @@ function Source.decode_source(source)
     if type(source) == 'table' then source[1] = source_string end
   end
 
-  return source_string, source_type, source_info, (type(source) == 'table') and source or nil
+  source_name = source_name or source_string
+
+  return source_name, source_string, source_type, source_info, (type(source) == 'table') and source or nil
 end
 
 function Source:__init(source)
-  local source_string, source_type, source_info, source_opt = Source.decode_source(source)
+  local source_name, source_string, source_type, source_info, source_opt = Source.decode_source(source)
 
-  log.info("create new source: `%s`", source_string)
+  if source_name == source_string then
+    log.info("create new source: %s", source_name)
+  else
+    log.info("create new source: %s/%s", source_name, source_string)
+  end
 
+  self._name    = source_name
   self._string  = source_string
   self._type    = source_type
   self._info    = source_info
@@ -91,7 +100,7 @@ function Source:add(filter)
     filter.events = EventLog.BuildFilter(filter.events)
   end
 
-  log.info("attach filter `%s` to source `%s`", filter.name, self._string)
+  log.info("attach filter `%s` to source `%s`", filter.name, self._name)
 
   append(self._filters, filter)
 end
@@ -107,12 +116,12 @@ function FilterManager:__init()
 end
 
 function FilterManager:source(filter)
-  local source_string = Source.decode_source(filter.source)
+  local source_name = Source.decode_source(filter.source)
 
-  local s = self._sources[source_string]
+  local s = self._sources[source_name]
   if not s then
     s = Source.new(filter.source)
-    self._sources[source_string] = s
+    self._sources[source_name] = s
   end
 
   return s

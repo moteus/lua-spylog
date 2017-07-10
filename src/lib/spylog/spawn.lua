@@ -156,7 +156,7 @@ local function spawn_ex(file, args, env, timeout, on_management, on_stdout, on_s
   if on_stdout then stdout.stream:start_read(on_data(on_stdout)) end
   if on_stderr then stderr.stream:start_read(on_data(on_stderr)) end
 
-  return proc
+  return proc, pid
 end
 
 local function spawn(file, args, timeout, cb)

@@ -65,6 +65,7 @@ JAIL{"voip-auth-fail";
  * EventLog (based on event trap) allows additional filters based on source names.
  * FreeSWITCH ESL TCP connection
  * TCP raw connection
+ * Process stdout and/or stderr
 
 ### Filters
 
