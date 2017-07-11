@@ -1,9 +1,10 @@
-local uv    = require "lluv"
-local ut    = require "lluv.utils"
-local spawn = require "spylog.spawn".spawn_ex
-local log   = require "spylog.log"
-local Args  = require "spylog.args"
-local path  = require "path"
+local uv      = require "lluv"
+local ut      = require "lluv.utils"
+local spawn   = require "spylog.spawn".spawn_ex
+local log     = require "spylog.log"
+local Args    = require "spylog.args"
+local path    = require "path"
+local environ = require "environ.process"
 
 local MAX_LINE_LENGTH = 4096
 
@@ -54,7 +55,11 @@ local function process_monitor(cmd, opt, cb)
   if opt.env then
     env = {}
     for k, v in pairs(opt.env) do
-      env[#env + 1] = k .. '=' .. v
+      if type(k) == 'number' then
+        env[#env + 1] = v .. '=' .. environ.getenv(v)
+      else
+        env[#env + 1] = k .. '=' .. environ.expand(v)
+      end
     end
   end
 
