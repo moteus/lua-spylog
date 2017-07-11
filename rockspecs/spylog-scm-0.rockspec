@@ -38,6 +38,7 @@ dependencies = {
   "sqlite3",
   "mmdblua",
   "lua-lru",
+  "environ",
 
   -- need install before by hand
   "lua-cjson",          -- custom rockspec on windows/msvc
