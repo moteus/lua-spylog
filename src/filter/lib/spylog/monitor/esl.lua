@@ -1,6 +1,6 @@
 local uv     = require "lluv"
 local ut     = require "lluv.utils"
-local esl    = require "lluv.esl"
+local Esl    = require "lluv.esl"
 local log    = require "spylog.log"
 
 local FS_LOG_LEVELS_NAMES = {
@@ -36,50 +36,46 @@ local function esl_monitor(endpoint, opt, cb)
 
   local log_header = string.format('[esl] [%s:%d]', address, port)
 
-  local reconnect_timeout = (opt and opt.reconnect or 30) * 1000
+  local reconnect_timeout = (opt and opt.reconnect or 30)
   local level, level_name = string.upper(tostring(opt and opt.level or 'WARNING'))
   level = FS_LOG_LEVELS[level] or level
   level_name = assert(FS_LOG_LEVELS_NAMES[level], 'Unknon log level: ' .. level)
 
-  local reconnect_timer = uv.timer(0)
+  local esl = Esl.Connection{address, port, auth,
+    reconnect = reconnect_timeout; no_execute_result = true; no_bgapi = true;
+  }
 
-  local function connect()
-    log.info("%s connecting ...", log_header)
+  esl:on('esl::reconnect', function(self, eventName)
+    log.info("%s connected", log_header)
 
-    esl.Connection(address, port, auth)
-
-    :open(function(self, err)
+    self:log(level_name, function(self, err, event)
       if err then
-        log.info("%s connected fail", log_header)
+        log.error('%s log command: %s', log_header, tostring(err))
         return
       end
 
-      log.info("%s connected", log_header)
-
-      self:log(level_name, function(self, err, event)
-        if err then return end
-        local ok, status, msg = event:getReply()
-        log.info('%s log command: %s %s', log_header, tostring(status), tostring(msg))
-      end)
-
+      local ok, status, msg = event:getReply()
+      log.info('%s log command: %s %s', log_header, tostring(status), tostring(msg))
     end)
-
-    :on('esl::event::LOG', function(self, eventName, event)
-      cb(event)
-    end)
-
-    :on('esl::error::**', function(self, eventName, err)
-      log.error('%s %s: %s', log_header, eventName, tostring(err))
-      self:close()
-      reconnect_timer:again(reconnect_timeout)
-    end)
-  end
-
-  reconnect_timer:start(function(self)
-    self:stop()
-    connect()
   end)
 
+  esl:on('esl::disconnect', function(self, eventName, err)
+    log.info("%s disconnected: %s", log_header, tostring(err))
+  end)
+
+  esl:on('esl::event::LOG', function(self, eventName, event)
+    cb(event)
+  end)
+
+  esl:on('esl::error::**', function(self, eventName, err)
+    log.error('%s %s: %s', log_header, eventName, tostring(err))
+  end)
+
+  esl:on('esl::close', function(self, eventName, err)
+    log.debug('%s %s: %s', log_header, eventName, tostring(err))
+  end)
+
+  esl:open()
 end
 
 local function esl_filter(filter, event)
