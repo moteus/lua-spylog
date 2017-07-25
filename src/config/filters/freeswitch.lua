@@ -5,7 +5,7 @@ FILTER{ "freeswitch-ip-request";
   hint    = "[WARNING]";
   engine  = 'pcre';
   failregex = {
-    [[^(\d\d\d\d\-\d\d\-\d\d \d\d:\d\d:\d\d\.\d+) \[WARNING\] sofia_reg.c:\d+ SIP auth (?:challenge|failure) \([A-Z]+\) on sofia profile \'[^']+\' for \[.*?@\d+.\d+.\d+.\d+\] from ip ([0-9.]+)\s*$]]
+    [[^(\d\d\d\d\-\d\d\-\d\d \d\d:\d\d:\d\d\.\d+) \[WARNING\] sofia_reg.c:\d+ SIP auth (?:challenge|failure) \([A-Z]+\) on sofia profile \'[^']+\' for \[.*?@\d+\.\d+\.\d+\.\d+\] from ip ([0-9.]+)\s*$]]
   }
 }
 
