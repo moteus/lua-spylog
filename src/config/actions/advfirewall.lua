@@ -14,7 +14,7 @@
 -- }
 --
 
-local unban = 'netsh advfirewall firewall delete rule name="SpyLog <UUID>"'
+local unban = 'netsh advfirewall firewall delete rule name="SpyLog <BAN_UUID>"'
 local ban   = 'netsh advfirewall firewall add rule dir=in interface=any action=block ' ..
               'name="SpyLog <UUID>" description="<DATE> <FILTER> <JAIL> <BANTIME>" '   ..
               'remoteip="<HOST>/<NET>" localport="<PORT>" protocol="<PROTOCOL>" ';
