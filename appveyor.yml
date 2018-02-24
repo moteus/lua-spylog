@@ -29,9 +29,7 @@ deploy:
   - provider: GitHub
     auth_token:
       secure: quhtxEmz8RrBAwBB5rZ675IUuhqjiDxTNouM5rEnUTeT7Gj3Lr4qPxuRcF60dqzW
-    artifact:
-      SpyLog-x86
-      SpyLog-x64
+    artifact: SpyLog-x86,SpyLog-x64
     draft: false
     prerelease: true
     on:
