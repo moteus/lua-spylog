@@ -2,8 +2,8 @@
 
 ## Execute actions based on log records
 
-[![SpyLog-x86-0.0.2.exe](https://img.shields.io/badge/0.0.2-x86-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.1/SpyLog-x86-0.0.2.exe)
-[![SpyLog-x64-0.0.2.exe](https://img.shields.io/badge/0.0.2-x64-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.1/SpyLog-x64-0.0.2.exe)
+[![SpyLog-x86-0.0.2.exe](https://img.shields.io/badge/0.0.2-x86-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.2/SpyLog-x86-0.0.2.exe)
+[![SpyLog-x64-0.0.2.exe](https://img.shields.io/badge/0.0.2-x64-blue.svg)](https://github.com/moteus/lua-spylog/releases/download/v0.0.2/SpyLog-x64-0.0.2.exe)
 
 -----------------------------------------------------------
 
